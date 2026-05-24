@@ -13,8 +13,8 @@ public class TitlePreset {
     public String font = "minecraft:default";
     public String color = null;
     public List<String> gradient = null;
-    public double scale = 1.0;
-    public int duration = 3000;
+    public double scale = -1.0;
+    public int duration = -1;
 
     public PositionPreset position;
     public RevealPreset reveal;
@@ -26,9 +26,9 @@ public class TitlePreset {
     public TitlePreset subtitle;
 
     public static class PositionPreset {
-        public String anchor = "center";
+        public String anchor = null;
         public int x = 0;
-        public int y = -40;
+        public int y = 0;
         public String alignment = "center";
     }
 
@@ -62,6 +62,9 @@ public class TitlePreset {
     public AnimatedTextPayload toPayload(String textOverride) {
         List<TextLayerPayload> layers = new ArrayList<>();
 
+        // Determine global duration
+        int globalDuration = duration > 0 ? duration : TextDefaults.getDefaultDuration(type);
+
         // 1. Process Main Layer
         String mainText = text != null ? text : "";
         if (textOverride != null) {
@@ -71,7 +74,7 @@ public class TitlePreset {
                 mainText = textOverride;
             }
         }
-        layers.add(createLayerPayload(this, mainText, type, duration));
+        layers.add(createLayerPayload(this, mainText, type, globalDuration));
 
         // 2. Process Nested Subtitle Layer
         if (subtitle != null) {
@@ -79,10 +82,10 @@ public class TitlePreset {
             if (textOverride != null && subText.contains("{text}")) {
                 subText = subText.replace("{text}", textOverride);
             }
-            layers.add(createLayerPayload(subtitle, subText, "subtitle", duration));
+            layers.add(createLayerPayload(subtitle, subText, "subtitle", globalDuration));
         }
 
-        return new AnimatedTextPayload(UUID.randomUUID().toString(), layers, duration);
+        return new AnimatedTextPayload(UUID.randomUUID().toString(), layers, globalDuration);
     }
 
     private TextLayerPayload createLayerPayload(TitlePreset preset, String resolvedText, String defaultType, int fallbackDuration) {
@@ -91,14 +94,15 @@ public class TitlePreset {
         // Position
         PositionPayload posPayload;
         if (preset.position != null) {
+            String anchor = preset.position.anchor != null ? preset.position.anchor : TextDefaults.getDefaultPosition(layerType).anchor();
             posPayload = new PositionPayload(
-                preset.position.anchor != null ? preset.position.anchor : "center",
+                anchor,
                 preset.position.x,
                 preset.position.y,
                 preset.position.alignment != null ? preset.position.alignment : "center"
             );
         } else {
-            posPayload = PositionPayload.defaultForType(layerType);
+            posPayload = TextDefaults.getDefaultPosition(layerType);
         }
 
         // Reveal
@@ -153,6 +157,7 @@ public class TitlePreset {
         }
 
         int layerDuration = preset.duration > 0 ? preset.duration : fallbackDuration;
+        float layerScale = preset.scale > 0 ? (float) preset.scale : TextDefaults.getDefaultScale(layerType);
 
         return new TextLayerPayload(
             layerType,
@@ -160,7 +165,7 @@ public class TitlePreset {
             preset.font != null ? preset.font : "minecraft:default",
             preset.color,
             preset.gradient,
-            (float) preset.scale,
+            layerScale,
             posPayload,
             revPayload,
             inPayload,

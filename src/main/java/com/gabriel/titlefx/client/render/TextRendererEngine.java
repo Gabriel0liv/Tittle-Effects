@@ -2,6 +2,8 @@ package com.gabriel.titlefx.client.render;
 
 import com.gabriel.titlefx.client.font.ClientFontManager;
 import com.gabriel.titlefx.common.animation.IdleAnimationType;
+import com.gabriel.titlefx.common.animation.InAnimationType;
+import com.gabriel.titlefx.common.animation.OutAnimationType;
 import com.gabriel.titlefx.common.animation.RevealType;
 import com.gabriel.titlefx.common.model.TextLayerPayload;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -41,13 +43,12 @@ public class TextRendererEngine {
                 }
             }
             glyphLines.add(lineGlyphs);
-            // Skip the '\n' character in instance glyphs if present
             charIndex++; 
         }
 
         // Calculate total scaled height
         float scale = layer.scale();
-        int lineHeight = 10; // 8 pixels text + 2 pixels gap
+        int lineHeight = 10;
         float totalHeight = lines.length * lineHeight * scale;
 
         // Calculate base anchor coordinate
@@ -99,26 +100,29 @@ public class TextRendererEngine {
                 anchorX = screenWidth;
                 anchorY = screenHeight;
                 break;
-            default: // custom or default to center
+            default:
                 anchorX = centerX;
                 anchorY = centerY;
                 break;
         }
 
-        // Vertical adjustment for center-aligned anchors
+        // Vertical adjustment (skip vertical centering for TITLE, SUBTITLE, ACTIONBAR)
         float startY = anchorY + layer.position().y();
-        if (anchor.contains("center") || anchor.equals("left") || anchor.equals("right")) {
-            startY -= (totalHeight / 2.0f);
-        } else if (anchor.contains("bottom")) {
-            startY -= totalHeight;
+        boolean isStandardType = "title".equalsIgnoreCase(layer.type()) || "subtitle".equalsIgnoreCase(layer.type()) || "actionbar".equalsIgnoreCase(layer.type());
+        if (!isStandardType) {
+            if (anchor.contains("center") || anchor.equals("left") || anchor.equals("right")) {
+                startY -= (totalHeight / 2.0f);
+            } else if (anchor.contains("bottom")) {
+                startY -= totalHeight;
+            }
         }
 
-        // Check if we can optimize and render whole strings
+        // Check if we must use glyph-by-glyph rendering
         boolean needsGlyphRender = false;
         if (layer.reveal().type() != RevealType.NONE && layer.reveal().type() != RevealType.LINE_BY_LINE) {
             needsGlyphRender = true;
         }
-        if (layer.idle().type() == IdleAnimationType.SHAKE || layer.idle().type() == IdleAnimationType.WAVE || layer.idle().type() == IdleAnimationType.FLICKER) {
+        if (layer.in().type() != InAnimationType.NONE || layer.out().type() != OutAnimationType.NONE || layer.idle().type() != IdleAnimationType.NONE) {
             needsGlyphRender = true;
         }
         if (layer.gradient() != null && !layer.gradient().isEmpty()) {
@@ -134,7 +138,6 @@ public class TextRendererEngine {
 
             float lineY = startY + (l * lineHeight * scale);
 
-            // Calculate width using target character widths to keep width stable during scrambles
             float targetLineWidth = 0.0f;
             for (RenderableGlyph g : lineGlyphs) {
                 targetLineWidth += font.width(Component.literal(String.valueOf(g.targetChar)).withStyle(fontStyle));
@@ -152,7 +155,6 @@ public class TextRendererEngine {
 
             if (!needsGlyphRender) {
                 // Optimized standard drawString path
-                // Determine color
                 float overallAlpha = 1.0f;
                 if (!lineGlyphs.isEmpty()) {
                     overallAlpha = lineGlyphs.get(0).alpha;
@@ -163,10 +165,9 @@ public class TextRendererEngine {
                 poseStack.translate(startX, lineY, 0.0f);
                 poseStack.scale(scale, scale, 1.0f);
                 
-                // Draw normal string
                 if (!lineGlyphs.isEmpty() && lineGlyphs.get(0).visible) {
                     FormattedCharSequence charSeq = Component.literal(lineText).withStyle(fontStyle).getVisualOrderText();
-                    guiGraphics.drawString(font, charSeq, 0, 0, intColor, true); // default shadow true
+                    guiGraphics.drawString(font, charSeq, 0, 0, intColor, true);
                 }
                 poseStack.popPose();
             } else {
@@ -184,7 +185,6 @@ public class TextRendererEngine {
                     float centeringOffset = (targetWidth - curWidth) / 2.0f;
 
                     poseStack.pushPose();
-                    // Translate local character matrix
                     poseStack.translate(
                         currentX + (g.xOffset * scale) + (centeringOffset * g.scale * scale),
                         lineY + (g.yOffset * scale),
@@ -192,7 +192,6 @@ public class TextRendererEngine {
                     );
                     poseStack.scale(g.scale * scale, g.scale * scale, 1.0f);
 
-                    // Compute Color (check gradients)
                     int finalColor;
                     if (layer.gradient() != null && !layer.gradient().isEmpty()) {
                         float factor = lineGlyphs.size() > 1 ? (float) i / (lineGlyphs.size() - 1) : 0.0f;

@@ -27,24 +27,27 @@ public class AnimatedTextManager {
         int maxMessages = TitleFxConfig.CLIENT.maxActiveMessages.get();
         boolean replaceSameType = TitleFxConfig.CLIENT.replaceSameTypeMessages.get();
 
-        for (TextLayerPayload layer : payload.layers()) {
-            AnimatedTextInstance newInstance = new AnimatedTextInstance(payload.id(), layer, payload.globalDurationMs(), now);
+        // 1. Remove any active layers that belong to the SAME payload ID before processing new ones
+        activeInstances.removeIf(instance -> instance.getPayloadId().equals(payload.id()));
 
-            // Replacement rules
-            Iterator<AnimatedTextInstance> iterator = activeInstances.iterator();
-            while (iterator.hasNext()) {
-                AnimatedTextInstance active = iterator.next();
-                
-                // Same ID replaces immediately
-                if (active.getId().equals(newInstance.getId())) {
-                    iterator.remove();
-                    continue;
-                }
+        // 2. Loop through the new payload layers
+        for (int i = 0; i < payload.layers().size(); i++) {
+            TextLayerPayload layer = payload.layers().get(i);
+            String instanceId = payload.id() + ":" + i;
+            AnimatedTextInstance newInstance = new AnimatedTextInstance(
+                payload.id(), // payloadId
+                instanceId,   // instanceId
+                layer,
+                payload.globalDurationMs(),
+                now
+            );
 
-                // If replaceSameType is active, same standard type (title, subtitle, actionbar) replaces
-                if (replaceSameType && !active.getType().equals("custom") && active.getType().equalsIgnoreCase(newInstance.getType())) {
-                    iterator.remove();
-                }
+            // 3. Replace active instances of the same type if they belong to a DIFFERENT payload ID
+            if (replaceSameType && !newInstance.getType().equalsIgnoreCase("custom")) {
+                activeInstances.removeIf(active -> 
+                    active.getType().equalsIgnoreCase(newInstance.getType()) &&
+                    !active.getPayloadId().equals(newInstance.getPayloadId())
+                );
             }
 
             activeInstances.add(newInstance);
@@ -62,8 +65,8 @@ public class AnimatedTextManager {
         } else if ("title".equalsIgnoreCase(clearType) || "subtitle".equalsIgnoreCase(clearType) || "actionbar".equalsIgnoreCase(clearType) || "custom".equalsIgnoreCase(clearType)) {
             activeInstances.removeIf(instance -> instance.getType().equalsIgnoreCase(clearType));
         } else {
-            // Clear by specific ID
-            activeInstances.removeIf(instance -> instance.getId().equals(clearType));
+            // Clear by specific payload ID or unique layer instance ID
+            activeInstances.removeIf(instance -> instance.getPayloadId().equals(clearType) || instance.getId().equals(clearType));
         }
     }
 
@@ -82,7 +85,21 @@ public class AnimatedTextManager {
             guiGraphics.drawString(mc.font, "TitleFX Debug - Active: " + activeInstances.size(), 5, y, 0xFFFFFF);
             y += 10;
             for (AnimatedTextInstance inst : activeInstances) {
-                guiGraphics.drawString(mc.font, " -> [" + inst.getType().toUpperCase() + "] \"" + inst.getText() + "\" (Age: " + (now - inst.getCreationTime()) + "ms / " + inst.getDuration() + "ms)", 5, y, 0xAAAAAA);
+                String debugText = String.format("[%s] \"%s\" | Scale: %.2f | Anchor: %s | Offset: [%d, %d] | Age: %d/%dms | R:%s, In:%s, Id:%s, Out:%s",
+                    inst.getType().toUpperCase(),
+                    inst.getText(),
+                    inst.getLayer().scale(),
+                    inst.getLayer().position().anchor(),
+                    inst.getLayer().position().x(),
+                    inst.getLayer().position().y(),
+                    (now - inst.getCreationTime()),
+                    inst.getDuration(),
+                    inst.getLayer().reveal().type().name(),
+                    inst.getLayer().in().type().name(),
+                    inst.getLayer().idle().type().name(),
+                    inst.getLayer().out().type().name()
+                );
+                guiGraphics.drawString(mc.font, debugText, 5, y, 0xAAAAAA);
                 y += 10;
             }
         }

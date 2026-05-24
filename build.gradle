@@ -151,6 +151,32 @@ dependencies {
 // When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
 // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
 tasks.named('processResources', ProcessResources).configure {
+    doFirst {
+        def fontDir = project.file('src/main/resources/assets/titlefx/font')
+        if (fontDir.exists() && fontDir.isDirectory()) {
+            fontDir.listFiles().each { file ->
+                if (file.name.endsWith('.ttf') || file.name.endsWith('.otf')) {
+                    def baseName = file.name.substring(0, file.name.lastIndexOf('.'))
+                    def jsonFile = new java.io.File(fontDir, "${baseName}.json")
+                    if (!jsonFile.exists()) {
+                        println "Autogenerating font JSON for ${file.name}"
+                        jsonFile.text = """{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "titlefx:font/${file.name}",
+      "shift": [0, 0],
+      "size": 11.0,
+      "oversample": 2.0
+    }
+  ]
+}"""
+                    }
+                }
+            }
+        }
+    }
+
     var replaceProperties = [
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
             forge_version: forge_version, forge_version_range: forge_version_range,

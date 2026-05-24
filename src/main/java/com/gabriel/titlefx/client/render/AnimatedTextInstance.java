@@ -12,7 +12,8 @@ import java.util.Comparator;
 import java.util.List;
 
 public class AnimatedTextInstance {
-    private final String id;
+    private final String payloadId;
+    private final String instanceId;
     private final TextLayerPayload layer;
     private final int duration;
     private final long creationTime;
@@ -21,10 +22,10 @@ public class AnimatedTextInstance {
     private final List<RenderableGlyph> glyphs = new ArrayList<>();
     private final List<Integer> revealOrder = new ArrayList<>();
 
-    public AnimatedTextInstance(String id, TextLayerPayload layer, int globalDuration, long creationTime) {
-        this.id = id;
+    public AnimatedTextInstance(String payloadId, String instanceId, TextLayerPayload layer, int globalDuration, long creationTime) {
+        this.payloadId = payloadId;
+        this.instanceId = instanceId;
         this.layer = layer;
-        // Use layer duration if defined, otherwise global duration
         this.duration = layer.durationMs() != null ? layer.durationMs() : globalDuration;
         this.creationTime = creationTime;
         this.text = layer.text();
@@ -54,7 +55,6 @@ public class AnimatedTextInstance {
             final double center = (length - 1) / 2.0;
             revealOrder.sort((a, b) -> Double.compare(Math.abs(b - center), Math.abs(a - center)));
         }
-        // LEFT_TO_RIGHT and WORD_BY_WORD keep default order (0 to N-1).
     }
 
     public boolean isExpired(long now) {
@@ -64,7 +64,7 @@ public class AnimatedTextInstance {
     public void render(GuiGraphics guiGraphics, float partialTick, int screenWidth, int screenHeight, long now) {
         long elapsedMs = now - creationTime;
 
-        // 1. Reset glyphs to base state
+        // Reset glyphs state
         for (RenderableGlyph glyph : glyphs) {
             glyph.currentChar = glyph.targetChar;
             glyph.xOffset = 0.0f;
@@ -74,18 +74,20 @@ public class AnimatedTextInstance {
             glyph.visible = true;
         }
 
-        // 2. Process reveal progress
+        // Process reveal
         TextRevealEngine.update(this, elapsedMs);
 
-        // 3. Process In/Idle/Out transformations
+        // Process animations
         AnimationEngine.update(this, elapsedMs);
 
-        // 4. Render
+        // Render line/glyphs
         TextRendererEngine.render(guiGraphics, this, screenWidth, screenHeight);
     }
 
     // Getters
-    public String getId() { return id; }
+    public String getPayloadId() { return payloadId; }
+    public String getId() { return instanceId; }
+    public String getInstanceId() { return instanceId; }
     public TextLayerPayload getLayer() { return layer; }
     public int getDuration() { return duration; }
     public long getCreationTime() { return creationTime; }

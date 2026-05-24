@@ -47,6 +47,37 @@ public class CTitleCommand {
             )
         );
 
+        // Friendly commands:
+        // /ctitle title <targets> <text>
+        base.then(Commands.literal("title")
+            .requires(src -> src.hasPermission(permLevel))
+            .then(Commands.argument("targets", EntityArgument.players())
+                .then(Commands.argument("text", StringArgumentType.greedyString())
+                    .executes(ctx -> executeFriendly(ctx, "title"))
+                )
+            )
+        );
+
+        // /ctitle subtitle <targets> <text>
+        base.then(Commands.literal("subtitle")
+            .requires(src -> src.hasPermission(permLevel))
+            .then(Commands.argument("targets", EntityArgument.players())
+                .then(Commands.argument("text", StringArgumentType.greedyString())
+                    .executes(ctx -> executeFriendly(ctx, "subtitle"))
+                )
+            )
+        );
+
+        // /ctitle actionbar <targets> <text>
+        base.then(Commands.literal("actionbar")
+            .requires(src -> src.hasPermission(permLevel))
+            .then(Commands.argument("targets", EntityArgument.players())
+                .then(Commands.argument("text", StringArgumentType.greedyString())
+                    .executes(ctx -> executeFriendly(ctx, "actionbar"))
+                )
+            )
+        );
+
         // /ctitle preset <targets> <presetId> [text_override]
         base.then(Commands.literal("preset")
             .requires(src -> src.hasPermission(permLevel))
@@ -127,6 +158,55 @@ public class CTitleCommand {
         dispatcher.register(base);
     }
 
+    private static int executeFriendly(CommandContext<CommandSourceStack> context, String type) {
+        try {
+            Collection<ServerPlayer> players = EntityArgument.getPlayers(context, "targets");
+            String rawText = StringArgumentType.getString(context, "text").trim();
+
+            // Strip surrounding quotes if present
+            if (rawText.startsWith("\"") && rawText.endsWith("\"") && rawText.length() >= 2) {
+                rawText = rawText.substring(1, rawText.length() - 1);
+            }
+
+            float defaultScale = TextDefaults.getDefaultScale(type);
+            PositionPayload defaultPos = TextDefaults.getDefaultPosition(type);
+            int defaultDuration = TextDefaults.getDefaultDuration(type);
+
+            // Friendly default styling
+            TextLayerPayload layer = new TextLayerPayload(
+                type,
+                rawText,
+                "minecraft:default",
+                "#FFFFFF",
+                null,
+                defaultScale,
+                defaultPos,
+                RevealPayload.defaultEmpty(),
+                new InAnimPayload(InAnimationType.FADE_IN, 500, Easing.LINEAR),
+                IdleAnimPayload.defaultEmpty(),
+                new OutAnimPayload(OutAnimationType.FADE_OUT, 500, Easing.LINEAR),
+                defaultDuration
+            );
+
+            AnimatedTextPayload payload = new AnimatedTextPayload(
+                UUID.randomUUID().toString(),
+                Collections.singletonList(layer),
+                defaultDuration
+            );
+
+            ShowAnimatedTextPacket packet = new ShowAnimatedTextPacket(payload);
+            for (ServerPlayer player : players) {
+                NetworkHandler.sendToPlayer(player, packet);
+            }
+
+            context.getSource().sendSuccess(() -> Component.literal("Enviado " + type + " animado para " + players.size() + " jogadores."), true);
+            return 1;
+        } catch (Exception e) {
+            context.getSource().sendFailure(Component.literal("Erro ao executar comando: " + e.getMessage()));
+            return 0;
+        }
+    }
+
     private static int executeShow(CommandContext<CommandSourceStack> context) {
         try {
             Collection<ServerPlayer> players = EntityArgument.getPlayers(context, "targets");
@@ -151,7 +231,7 @@ public class CTitleCommand {
                 data.durationMs
             );
 
-            int globalDuration = data.durationMs != null ? data.durationMs : 3000;
+            int globalDuration = data.durationMs != null ? data.durationMs : TextDefaults.getDefaultDuration(type);
             AnimatedTextPayload payload = new AnimatedTextPayload(
                 UUID.randomUUID().toString(),
                 Collections.singletonList(layer),
@@ -279,13 +359,12 @@ public class CTitleCommand {
         return 1;
     }
 
-    // Helper classes and parsing
     public static class ParsedCommandData {
         public String text = "";
         public String fontId = "minecraft:default";
         public String color = null;
         public List<String> gradient = null;
-        public float scale = 1.0f;
+        public float scale = -1.0f; // negative means unset
         public PositionPayload position;
         
         public RevealType revealType = RevealType.NONE;
@@ -317,12 +396,11 @@ public class CTitleCommand {
 
     public static ParsedCommandData parseOptionsAndText(String input, String type) {
         ParsedCommandData data = new ParsedCommandData();
-        data.position = PositionPayload.defaultForType(type);
+        data.position = null; // will resolve later if not set
 
         String optionsString = "";
         String textPart = "";
 
-        // Check if there are quotes. The text should ideally be at the end, in quotes.
         int lastQuoteIdx = input.lastIndexOf('"');
         if (lastQuoteIdx != -1) {
             int secondToLastQuoteIdx = input.lastIndexOf('"', lastQuoteIdx - 1);
@@ -330,14 +408,10 @@ public class CTitleCommand {
                 textPart = input.substring(secondToLastQuoteIdx + 1, lastQuoteIdx);
                 optionsString = input.substring(0, secondToLastQuoteIdx).trim();
             } else {
-                // Only one quote: fallback
                 textPart = input.substring(lastQuoteIdx + 1).trim();
                 optionsString = input.substring(0, lastQuoteIdx).trim();
             }
         } else {
-            // No quotes at all.
-            // Check if there are colon indicators. If so, parse everything before the last word as options?
-            // Safer: split by space, tokens with ':' are options. The remaining tokens are concatenated as text.
             String[] tokens = input.split("\\s+");
             StringBuilder optionsBuilder = new StringBuilder();
             StringBuilder textBuilder = new StringBuilder();
@@ -356,6 +430,12 @@ public class CTitleCommand {
 
         // Parse options
         String[] optTokens = optionsString.split("\\s+");
+        PositionPayload customPos = null;
+        String anchor = null;
+        Integer posX = null;
+        Integer posY = null;
+        String alignment = null;
+
         for (String token : optTokens) {
             if (!token.contains(":")) continue;
             int colon = token.indexOf(':');
@@ -430,10 +510,45 @@ public class CTitleCommand {
                 case "duration":
                     try { data.durationMs = Integer.parseInt(val); } catch (Exception ignored) {}
                     break;
+                case "anchor":
+                    anchor = val;
+                    break;
+                case "x":
+                    try { posX = Integer.parseInt(val); } catch (Exception ignored) {}
+                    break;
+                case "y":
+                    try { posY = Integer.parseInt(val); } catch (Exception ignored) {}
+                    break;
+                case "align":
+                case "alignment":
+                    alignment = val;
+                    break;
             }
         }
 
-        // Validate options and construct payloads
+        // Apply scale default if not set
+        if (data.scale <= 0.0f) {
+            data.scale = TextDefaults.getDefaultScale(type);
+        }
+
+        // Apply duration default if not set
+        if (data.durationMs == null) {
+            data.durationMs = TextDefaults.getDefaultDuration(type);
+        }
+
+        // Apply position default if custom parameters are missing, or construct custom
+        PositionPayload defaultPos = TextDefaults.getDefaultPosition(type);
+        if (anchor != null || posX != null || posY != null || alignment != null) {
+            data.position = new PositionPayload(
+                anchor != null ? anchor : defaultPos.anchor(),
+                posX != null ? posX : defaultPos.x(),
+                posY != null ? posY : defaultPos.y(),
+                alignment != null ? alignment : defaultPos.alignment()
+            );
+        } else {
+            data.position = defaultPos;
+        }
+
         data.reveal = new RevealPayload(
             data.revealType,
             data.revealDuration,
@@ -460,23 +575,21 @@ public class CTitleCommand {
             "reveal:", "reveal_duration:", "lock_mode:", "flicker_speed:", "charset:",
             "in:", "in_duration:", "in_easing:",
             "idle:", "idle_intensity:",
-            "out:", "out_duration:", "out_easing:"
+            "out:", "out_duration:", "out_easing:",
+            "anchor:", "x:", "y:", "alignment:"
         );
 
         if (!currentToken.contains(":")) {
-            // Suggest option keys
             String prefix = lastSpace == -1 ? "" : input.substring(0, lastSpace + 1);
             for (String key : optionKeys) {
                 if (key.startsWith(currentToken)) {
                     builder.suggest(prefix + key);
                 }
             }
-            // Also suggest starting quotes for text
             if (currentToken.startsWith("\"") || currentToken.isEmpty()) {
                 builder.suggest(prefix + "\"Texto aqui\"");
             }
         } else {
-            // Suggest values for the key
             int colonIdx = currentToken.indexOf(':');
             String key = currentToken.substring(0, colonIdx).toLowerCase(Locale.ROOT);
             String valPrefix = currentToken.substring(colonIdx + 1);
@@ -512,6 +625,12 @@ public class CTitleCommand {
                     break;
                 case "shadow":
                     suggestions.addAll(Arrays.asList("true", "false"));
+                    break;
+                case "anchor":
+                    suggestions.addAll(Arrays.asList("center", "top", "bottom", "left", "right", "top_left", "top_right", "bottom_left", "bottom_right"));
+                    break;
+                case "alignment":
+                    suggestions.addAll(Arrays.asList("center", "left", "right"));
                     break;
             }
 
