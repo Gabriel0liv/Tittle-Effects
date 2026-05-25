@@ -1,6 +1,7 @@
 package com.gabriel.titlefx.common.preset;
 
 import com.gabriel.titlefx.common.animation.*;
+import com.gabriel.titlefx.common.animation.RevealSpeed;
 import com.gabriel.titlefx.common.model.*;
 
 import java.util.ArrayList;
@@ -34,7 +35,14 @@ public class TitlePreset {
 
     public static class RevealPreset {
         public String type = "none";
-        public int duration = 1000;
+        /** Speed preset key: instant, fast, normal, cinematic, slow, custom. */
+        public String speed = "normal";
+        /**
+         * Manual duration in ms. Only used when speed = "custom".
+         * For backward-compat: if duration > 0 and speed is missing (default "normal"),
+         * preset is treated as CUSTOM with this explicit value.
+         */
+        public int duration = 0;
         public String lockMode = "left_to_right";
         public int flickerSpeed = 2;
         public String charset = "safe";
@@ -111,12 +119,19 @@ public class TitlePreset {
         // Reveal
         RevealPayload revPayload;
         if (preset.reveal != null) {
+            RevealSpeed revSpeed = RevealSpeed.fromString(preset.reveal.speed);
+            // Backward-compat: if speed is still default (NORMAL) but an explicit ms duration > 0
+            // was provided, treat it as CUSTOM so the preset behaves as authored.
+            if (revSpeed == RevealSpeed.NORMAL && preset.reveal.duration > 0) {
+                revSpeed = RevealSpeed.CUSTOM;
+            }
             revPayload = new RevealPayload(
                 RevealType.fromString(preset.reveal.type),
+                revSpeed,
                 preset.reveal.duration,
                 LockMode.fromString(preset.reveal.lockMode),
                 preset.reveal.flickerSpeed,
-                preset.reveal.charset != null ? preset.reveal.charset : "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+                preset.reveal.charset != null ? preset.reveal.charset : "safe",
                 preset.reveal.preserveSpaces,
                 preset.reveal.preserveCase
             );

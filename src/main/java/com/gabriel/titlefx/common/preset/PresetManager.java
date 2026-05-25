@@ -22,7 +22,7 @@ public class PresetManager {
             presetsDir.mkdirs();
         }
 
-        File defaultFile = new File(presetsDir, "default_presets_v3.json");
+        File defaultFile = new File(presetsDir, "default_presets_v4.json");
         if (!defaultFile.exists()) {
             writeDefaultPresets(defaultFile);
         }
@@ -42,10 +42,10 @@ public class PresetManager {
         File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
         if (files == null) return;
 
-        // Sort files to ensure default_presets_v3.json loads last and overrides older presets
+        // Sort: v4 loads last and wins over v3
         java.util.Arrays.sort(files, (f1, f2) -> {
-            if ("default_presets_v3.json".equals(f1.getName())) return 1;
-            if ("default_presets_v3.json".equals(f2.getName())) return -1;
+            if ("default_presets_v4.json".equals(f1.getName())) return 1;
+            if ("default_presets_v4.json".equals(f2.getName())) return -1;
             return f1.getName().compareTo(f2.getName());
         });
 
@@ -71,7 +71,7 @@ public class PresetManager {
             "    \"duration\": 5000,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"obfuscated_decode\",\n" +
-            "      \"duration\": 1200\n" +
+            "      \"speed\": \"cinematic\"\n" +
             "    },\n" +
             "    \"in\": {\n" +
             "      \"type\": \"cinematic_zoom_in\",\n" +
@@ -91,7 +91,7 @@ public class PresetManager {
             "      \"color\": \"#FFFFFF\",\n" +
             "      \"reveal\": {\n" +
             "        \"type\": \"typewriter\",\n" +
-            "        \"duration\": 1000\n" +
+            "        \"speed\": \"normal\"\n" +
             "      }\n" +
             "    }\n" +
             "  },\n" +
@@ -102,7 +102,7 @@ public class PresetManager {
             "    \"duration\": 3500,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"word_by_word\",\n" +
-            "      \"duration\": 1000\n" +
+            "      \"speed\": \"normal\"\n" +
             "    },\n" +
             "    \"in\": {\n" +
             "      \"type\": \"fade_in\",\n" +
@@ -124,7 +124,7 @@ public class PresetManager {
             "    \"duration\": 3000,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"fade_chars\",\n" +
-            "      \"duration\": 1000\n" +
+            "      \"speed\": \"cinematic\"\n" +
             "    },\n" +
             "    \"in\": {\n" +
             "      \"type\": \"soft_pop\",\n" +
@@ -142,7 +142,7 @@ public class PresetManager {
             "    \"duration\": 3000,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"glyph_scramble\",\n" +
-            "      \"duration\": 800\n" +
+            "      \"speed\": \"fast\"\n" +
             "    },\n" +
             "    \"in\": {\n" +
             "      \"type\": \"soft_pop\",\n" +
@@ -164,7 +164,7 @@ public class PresetManager {
             "    \"duration\": 2500,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"typewriter\",\n" +
-            "      \"duration\": 600\n" +
+            "      \"speed\": \"fast\"\n" +
             "    },\n" +
             "    \"in\": {\n" +
             "      \"type\": \"fade_in\",\n" +
@@ -183,7 +183,7 @@ public class PresetManager {
             "    \"duration\": 3500,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"center_out\",\n" +
-            "      \"duration\": 800\n" +
+            "      \"speed\": \"cinematic\"\n" +
             "    },\n" +
             "    \"in\": {\n" +
             "      \"type\": \"soft_pop\",\n" +
@@ -202,7 +202,7 @@ public class PresetManager {
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             writer.write(defaultJson);
-            TitleFxMod.LOGGER.info("Created default_presets_v3.json file.");
+            TitleFxMod.LOGGER.info("Created default_presets_v4.json file.");
         } catch (IOException e) {
             TitleFxMod.LOGGER.error("Failed to write default presets", e);
         }

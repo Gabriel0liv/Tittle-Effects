@@ -14,7 +14,7 @@ public class TextRevealEngine {
     public static void update(AnimatedTextInstance instance, long elapsedMs) {
         RevealPayload reveal = instance.getLayer().reveal();
         RevealType type = reveal.type();
-        int duration = reveal.durationMs();
+        int duration = reveal.effectiveDurationMs(instance.getText());
         List<RenderableGlyph> glyphs = instance.getGlyphs();
 
         if (duration <= 0 || type == RevealType.NONE) {

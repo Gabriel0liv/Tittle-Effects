@@ -2,6 +2,7 @@ package com.gabriel.titlefx.common.command;
 
 import com.gabriel.titlefx.TitleFxMod;
 import com.gabriel.titlefx.common.animation.*;
+import com.gabriel.titlefx.common.animation.RevealSpeed;
 import com.gabriel.titlefx.common.config.TitleFxConfig;
 import com.gabriel.titlefx.common.model.*;
 import com.gabriel.titlefx.common.network.ClearAnimatedTextPacket;
@@ -314,7 +315,9 @@ public class CTitleCommand {
         public PositionPayload position;
         
         public RevealType revealType = RevealType.NONE;
-        public int revealDuration = 1000;
+        public RevealSpeed revealSpeed = RevealSpeed.NORMAL;
+        public boolean explicitRevealDuration = false;
+        public int revealDuration = 0;
         public LockMode lockMode = LockMode.LEFT_TO_RIGHT;
         public int flickerSpeed = 2;
         public String charset = "safe";
@@ -406,7 +409,18 @@ public class CTitleCommand {
                     break;
                 case "reveal_duration":
                 case "revealduration":
-                    try { data.revealDuration = Integer.parseInt(val); } catch (Exception ignored) {}
+                    try {
+                        data.revealDuration = Integer.parseInt(val);
+                        data.explicitRevealDuration = true;
+                        data.revealSpeed = RevealSpeed.CUSTOM;
+                    } catch (Exception ignored) {}
+                    break;
+                case "reveal_speed":
+                case "revealspeed":
+                case "speed":
+                    if (!data.explicitRevealDuration) {
+                        data.revealSpeed = RevealSpeed.fromString(val);
+                    }
                     break;
                 case "lock_mode":
                 case "lockmode":
@@ -497,7 +511,8 @@ public class CTitleCommand {
 
         data.reveal = new RevealPayload(
             data.revealType,
-            data.revealDuration,
+            data.revealSpeed,
+            data.explicitRevealDuration ? data.revealDuration : 0,
             data.lockMode,
             data.flickerSpeed,
             data.charset,
@@ -518,7 +533,7 @@ public class CTitleCommand {
 
         List<String> optionKeys = Arrays.asList(
             "color:", "gradient:", "scale:", "duration:",
-            "reveal:", "reveal_duration:", "lock_mode:", "flicker_speed:", "charset:",
+            "reveal:", "reveal_speed:", "reveal_duration:", "lock_mode:", "flicker_speed:", "charset:",
             "in:", "in_duration:", "in_easing:",
             "idle:", "idle_intensity:",
             "out:", "out_duration:", "out_easing:",
@@ -548,6 +563,11 @@ public class CTitleCommand {
                         if (isDeprecated(t)) continue;
                         suggestions.add(t.name().toLowerCase());
                     }
+                    break;
+                case "reveal_speed":
+                case "revealspeed":
+                case "speed":
+                    suggestions.addAll(Arrays.asList("instant", "fast", "normal", "cinematic", "slow"));
                     break;
                 case "in":
                     for (InAnimationType t : InAnimationType.values()) {

@@ -1,6 +1,7 @@
 package com.gabriel.titlefx.client.gui;
 
 import com.gabriel.titlefx.common.animation.*;
+import com.gabriel.titlefx.common.animation.RevealSpeed;
 import com.gabriel.titlefx.common.model.*;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -26,7 +27,7 @@ public class TextEditorScreen extends Screen {
 
     // Inputs Right Column
     private Button revealTypeButton;
-    private EditBox revealDurationEdit;
+    private Button revealSpeedButton;   // replaces revealDurationEdit in simple mode
     private Button inAnimButton;
     private Button inEasingButton;
     private EditBox inDurationEdit;
@@ -44,6 +45,12 @@ public class TextEditorScreen extends Screen {
 
     private final String[] revealTypes = {"NONE", "TYPEWRITER", "WORD_BY_WORD", "GLYPH_SCRAMBLE", "OBFUSCATED_DECODE", "CENTER_OUT", "WIPE_LEFT_TO_RIGHT", "FADE_CHARS", "RANDOM_FADE"};
     private int revealTypeIndex = 0;
+
+    // RevealSpeed cycles: INSTANT, FAST, NORMAL, CINEMATIC, SLOW (CUSTOM not in simple mode)
+    private static final RevealSpeed[] REVEAL_SPEEDS = {
+        RevealSpeed.INSTANT, RevealSpeed.FAST, RevealSpeed.NORMAL, RevealSpeed.CINEMATIC, RevealSpeed.SLOW
+    };
+    private int revealSpeedIndex = 2; // default = NORMAL
 
     private final String[] inAnimTypes = {"NONE", "FADE_IN", "CINEMATIC_ZOOM_IN", "SOFT_POP", "SCALE_REVEAL"};
     private int inAnimIndex = 0;
@@ -130,9 +137,11 @@ public class TextEditorScreen extends Screen {
         }).bounds(rx, panelStartY + 15, 95, 16).build();
         this.addRenderableWidget(revealTypeButton);
 
-        revealDurationEdit = new EditBox(this.font, rx + 105, panelStartY + 15, 95, 16, Component.literal(""));
-        revealDurationEdit.setValue("1000");
-        this.addRenderableWidget(revealDurationEdit);
+        revealSpeedButton = Button.builder(Component.literal("Vel: " + REVEAL_SPEEDS[revealSpeedIndex].getLabel()), btn -> {
+            revealSpeedIndex = (revealSpeedIndex + 1) % REVEAL_SPEEDS.length;
+            btn.setMessage(Component.literal("Vel: " + REVEAL_SPEEDS[revealSpeedIndex].getLabel()));
+        }).bounds(rx + 105, panelStartY + 15, 95, 16).build();
+        this.addRenderableWidget(revealSpeedButton);
 
         // Row 1: In Animation and Easing
         inAnimButton = Button.builder(Component.literal("Entrada: " + inAnimTypes[inAnimIndex]), btn -> {
@@ -226,8 +235,7 @@ public class TextEditorScreen extends Screen {
 
             // Reveal
             RevealType revType = RevealType.fromString(revealTypes[revealTypeIndex]);
-            int revDur = 1000;
-            try { revDur = Integer.parseInt(revealDurationEdit.getValue().trim()); } catch (Exception ignored) {}
+            RevealSpeed revSpeed = REVEAL_SPEEDS[revealSpeedIndex];
 
             // In
             InAnimationType inAnimType = InAnimationType.fromString(inAnimTypes[inAnimIndex]);
@@ -249,7 +257,8 @@ public class TextEditorScreen extends Screen {
             // Build RevealPayload, InAnimPayload, IdleAnimPayload, OutAnimPayload, PositionPayload, TextLayerPayload
             RevealPayload reveal = new RevealPayload(
                 revType,
-                revDur,
+                revSpeed,
+                0,          // durationMs = 0 because speed drives the calculation
                 LockMode.LEFT_TO_RIGHT,
                 2,
                 "safe",
@@ -308,7 +317,7 @@ public class TextEditorScreen extends Screen {
             String durationStr = durationEdit.getValue().trim();
 
             String revType = revealTypes[revealTypeIndex].toLowerCase();
-            String revDurStr = revealDurationEdit.getValue().trim();
+            RevealSpeed revSpeed = REVEAL_SPEEDS[revealSpeedIndex];
 
             String inAnimType = inAnimTypes[inAnimIndex].toLowerCase();
             String inDurStr = inDurationEdit.getValue().trim();
@@ -331,7 +340,12 @@ public class TextEditorScreen extends Screen {
 
             if (!"none".equals(revType)) {
                 cmd.append("reveal:").append(revType).append(" ");
-                cmd.append("reveal_duration:").append(revDurStr).append(" ");
+                // Emit reveal_speed unless it's CUSTOM, in which case emit reveal_duration
+                if (revSpeed == RevealSpeed.CUSTOM) {
+                    cmd.append("reveal_duration:").append(0).append(" ");
+                } else {
+                    cmd.append("reveal_speed:").append(revSpeed.name().toLowerCase()).append(" ");
+                }
             }
             if (!"none".equals(inAnimType)) {
                 cmd.append("in:").append(inAnimType).append(" ");
@@ -412,7 +426,7 @@ public class TextEditorScreen extends Screen {
         // Draw Labels - Right Column
         int rx = panelStartX + 220;
         graphics.drawString(this.font, "Revelação", rx, panelStartY + 6, 0xA0A0A0);
-        graphics.drawString(this.font, "Duração Rev.", rx + 105, panelStartY + 6, 0xA0A0A0);
+        graphics.drawString(this.font, "Vel. Revelação", rx + 105, panelStartY + 6, 0xA0A0A0);
         graphics.drawString(this.font, "Anim. Entrada", rx, panelStartY + 34, 0xA0A0A0);
         graphics.drawString(this.font, "Suavização", rx + 105, panelStartY + 34, 0xA0A0A0);
         graphics.drawString(this.font, "Duração Entr.", rx, panelStartY + 62, 0xA0A0A0);
