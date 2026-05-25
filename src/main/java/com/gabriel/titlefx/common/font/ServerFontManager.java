@@ -21,11 +21,25 @@ public class ServerFontManager {
     private static String registryHash = "";
     private static String serverHash = "";
 
+    public static class ScanResult {
+        public String absolutePath = "";
+        public int ttfOtfCount = 0;
+        public List<String> registeredFonts = new ArrayList<>();
+        public Map<String, String> rejectedFiles = new LinkedHashMap<>();
+    }
+
     public static void init() {
         rescan();
     }
 
-    public static synchronized void rescan() {
+    public static String getFontsDirAbsolutePath() {
+        return FONTS_DIR.getAbsolutePath();
+    }
+
+    public static synchronized ScanResult rescan() {
+        ScanResult result = new ScanResult();
+        result.absolutePath = FONTS_DIR.getAbsolutePath();
+
         FONTS.clear();
         FONT_FILES.clear();
         registryHash = "";
@@ -34,54 +48,69 @@ public class ServerFontManager {
             FONTS_DIR.mkdirs();
         }
 
-        File[] files = FONTS_DIR.listFiles((dir, name) -> {
-            String lower = name.toLowerCase(Locale.ROOT);
-            return lower.endsWith(".ttf") || lower.endsWith(".otf");
-        });
-
+        File[] files = FONTS_DIR.listFiles();
         if (files != null) {
             for (File file : files) {
-                try {
-                    if (!file.getCanonicalPath().startsWith(FONTS_DIR.getCanonicalPath())) {
-                        TitleFxMod.LOGGER.warn("Skipping file due to path traversal attempt: " + file.getName());
+                if (file.isDirectory()) continue;
+                String lower = file.getName().toLowerCase(Locale.ROOT);
+                if (lower.endsWith(".ttf") || lower.endsWith(".otf")) {
+                    result.ttfOtfCount++;
+                    
+                    try {
+                        if (!file.getCanonicalPath().startsWith(FONTS_DIR.getCanonicalPath())) {
+                            TitleFxMod.LOGGER.warn("Skipping file due to path traversal attempt: " + file.getName());
+                            result.rejectedFiles.put(file.getName(), "Tentativa de Path Traversal");
+                            continue;
+                        }
+                    } catch (IOException e) {
+                        result.rejectedFiles.put(file.getName(), "Erro de I/O ao verificar path canonical");
                         continue;
                     }
-                } catch (IOException e) {
-                    continue;
+
+                    String fileName = file.getName();
+                    int dotIdx = fileName.lastIndexOf('.');
+                    if (dotIdx == -1) continue;
+
+                    String nameWithoutExtension = fileName.substring(0, dotIdx).toLowerCase(Locale.ROOT);
+                    String extension = fileName.substring(dotIdx).toLowerCase(Locale.ROOT);
+                    // Sanitization
+                    nameWithoutExtension = nameWithoutExtension.replaceAll("[\\s]+", "_");
+                    nameWithoutExtension = nameWithoutExtension.replaceAll("[^a-z0-9_\\-]", "");
+                    
+                    String fontId = "titlefx:" + nameWithoutExtension;
+
+                    if (FONTS.containsKey(fontId)) {
+                        result.rejectedFiles.put(fileName, "Colisão de ID lógico (" + fontId + ")");
+                        continue;
+                    }
+
+                    String sha256 = computeSHA256(file);
+                    if (sha256.isEmpty()) {
+                        TitleFxMod.LOGGER.error("Failed to calculate SHA-256 for: " + fileName);
+                        result.rejectedFiles.put(fileName, "Falha ao calcular SHA-256");
+                        continue;
+                    }
+
+                    long sizeBytes = file.length();
+                    long maxAllowedSize = (long) com.gabriel.titlefx.common.config.TitleFxConfig.COMMON.maxFontFileSizeMb.get() * 1024 * 1024;
+                    if (sizeBytes > maxAllowedSize) {
+                        String errMsg = "Tamanho excede o limite individual de " + (maxAllowedSize / 1024 / 1024) + "MB (" + (sizeBytes / 1024 / 1024) + "MB)";
+                        TitleFxMod.LOGGER.warn("Skipping font " + fileName + " because it exceeds the maximum size limit of " + (maxAllowedSize / 1024 / 1024) + "MB.");
+                        result.rejectedFiles.put(fileName, errMsg);
+                        continue;
+                    }
+
+                    FontInfo info = new FontInfo(fontId, fileName, extension, sizeBytes, sha256);
+                    FONTS.put(fontId, info);
+                    FONT_FILES.put(fontId, file);
+                    result.registeredFonts.add(fileName + " -> " + fontId);
+                    TitleFxMod.LOGGER.info("Registered server font: " + fontId + " (" + fileName + ")");
                 }
-
-                String fileName = file.getName();
-                int dotIdx = fileName.lastIndexOf('.');
-                if (dotIdx == -1) continue;
-
-                String nameWithoutExtension = fileName.substring(0, dotIdx).toLowerCase(Locale.ROOT);
-                String extension = fileName.substring(dotIdx).toLowerCase(Locale.ROOT);
-                // Sanitization
-                nameWithoutExtension = nameWithoutExtension.replaceAll("[\\s]+", "_");
-                nameWithoutExtension = nameWithoutExtension.replaceAll("[^a-z0-9_\\-]", "");
-                
-                String fontId = "titlefx:" + nameWithoutExtension;
-                String sha256 = computeSHA256(file);
-                long sizeBytes = file.length();
-                long maxAllowedSize = (long) com.gabriel.titlefx.common.config.TitleFxConfig.COMMON.maxFontFileSizeMb.get() * 1024 * 1024;
-                if (sizeBytes > maxAllowedSize) {
-                    TitleFxMod.LOGGER.warn("Skipping font " + fileName + " because it exceeds the maximum size limit of " + (maxAllowedSize / 1024 / 1024) + "MB.");
-                    continue;
-                }
-
-                if (sha256.isEmpty()) {
-                    TitleFxMod.LOGGER.error("Failed to calculate SHA-256 for: " + fileName);
-                    continue;
-                }
-
-                FontInfo info = new FontInfo(fontId, fileName, extension, sizeBytes, sha256);
-                FONTS.put(fontId, info);
-                FONT_FILES.put(fontId, file);
-                TitleFxMod.LOGGER.info("Registered server font: " + fontId + " (" + fileName + ")");
             }
         }
 
         calculateRegistryHash();
+        return result;
     }
 
     private static void calculateRegistryHash() {

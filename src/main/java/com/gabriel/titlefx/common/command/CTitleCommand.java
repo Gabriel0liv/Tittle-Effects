@@ -119,7 +119,7 @@ public class CTitleCommand {
             )
         );
 
-        // /ctitle fonts list/reload
+        // /ctitle fonts list/reload/path
         base.then(Commands.literal("fonts")
             .then(Commands.literal("list")
                 .requires(src -> {
@@ -131,6 +131,10 @@ public class CTitleCommand {
             .then(Commands.literal("reload")
                 .requires(src -> src.hasPermission(permLevel))
                 .executes(CTitleCommand::executeFontsReload)
+            )
+            .then(Commands.literal("path")
+                .requires(src -> src.hasPermission(permLevel))
+                .executes(CTitleCommand::executeFontsPath)
             )
         );
 
@@ -351,9 +355,43 @@ public class CTitleCommand {
         return 1;
     }
 
+    private static int executeFontsPath(CommandContext<CommandSourceStack> context) {
+        String path = com.gabriel.titlefx.common.font.ServerFontManager.getFontsDirAbsolutePath();
+        context.getSource().sendSuccess(() -> Component.literal("§6[TitleFX] Caminho de Fontes do Servidor:"), false);
+        context.getSource().sendSuccess(() -> Component.literal("§f" + path), false);
+        return 1;
+    }
+
     private static int executeFontsReload(CommandContext<CommandSourceStack> context) {
-        com.gabriel.titlefx.common.font.ServerFontManager.rescan();
+        com.gabriel.titlefx.common.font.ServerFontManager.ScanResult result = com.gabriel.titlefx.common.font.ServerFontManager.rescan();
         com.gabriel.titlefx.common.font.ServerFontManager.broadcastSync();
+        
+        // Em singleplayer/integrated server, garante sincronia local enviando diretamente ao executor se for um player
+        try {
+            net.minecraft.server.level.ServerPlayer player = context.getSource().getPlayerOrException();
+            com.gabriel.titlefx.common.font.ServerFontManager.syncFontsToPlayer(player);
+        } catch (Exception ignored) {}
+
+        // Imprime diagnóstico detalhado no chat do jogo
+        context.getSource().sendSuccess(() -> Component.literal("§6=== TitleFX Font Scan ==="), false);
+        context.getSource().sendSuccess(() -> Component.literal("§7Pasta escaneada:"), false);
+        context.getSource().sendSuccess(() -> Component.literal("§f" + result.absolutePath), false);
+        context.getSource().sendSuccess(() -> Component.literal("§7Arquivos candidatos encontrados: §f" + result.ttfOtfCount), false);
+        
+        context.getSource().sendSuccess(() -> Component.literal("§7Fontes registradas: §a" + result.registeredFonts.size()), false);
+        for (String fontMap : result.registeredFonts) {
+            context.getSource().sendSuccess(() -> Component.literal("  - " + fontMap), false);
+        }
+
+        if (!result.rejectedFiles.isEmpty()) {
+            context.getSource().sendSuccess(() -> Component.literal("§cArquivos rejeitados: §f" + result.rejectedFiles.size()), false);
+            for (Map.Entry<String, String> entry : result.rejectedFiles.entrySet()) {
+                context.getSource().sendSuccess(() -> Component.literal("  - §c" + entry.getKey() + "§7: " + entry.getValue()), false);
+            }
+        } else {
+            context.getSource().sendSuccess(() -> Component.literal("§7Arquivos rejeitados: §aNenhum"), false);
+        }
+
         context.getSource().sendSuccess(() -> Component.literal("§aFontes do servidor recarregadas e sincronizadas com todos os jogadores!"), true);
         return 1;
     }

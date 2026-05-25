@@ -22,7 +22,7 @@ public class PresetManager {
             presetsDir.mkdirs();
         }
 
-        File defaultFile = new File(presetsDir, "default_presets.json");
+        File defaultFile = new File(presetsDir, "default_presets_v2.json");
         if (!defaultFile.exists()) {
             writeDefaultPresets(defaultFile);
         }
@@ -41,6 +41,13 @@ public class PresetManager {
     private static void loadPresetsFromDir(File dir) {
         File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
         if (files == null) return;
+
+        // Sort files to ensure default_presets_v2.json loads last and overrides older presets
+        java.util.Arrays.sort(files, (f1, f2) -> {
+            if ("default_presets_v2.json".equals(f1.getName())) return 1;
+            if ("default_presets_v2.json".equals(f2.getName())) return -1;
+            return f1.getName().compareTo(f2.getName());
+        });
 
         for (File file : files) {
             try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
@@ -62,13 +69,7 @@ public class PresetManager {
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#AA0000\",\n" +
             "    \"gradient\": [\"#FF0000\", \"#550000\"],\n" +
-            "    \"scale\": 3.0,\n" +
             "    \"duration\": 5000,\n" +
-            "    \"position\": {\n" +
-            "      \"anchor\": \"center\",\n" +
-            "      \"x\": 0,\n" +
-            "      \"y\": -40\n" +
-            "    },\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"obfuscated_decode\",\n" +
             "      \"duration\": 1200,\n" +
@@ -93,7 +94,6 @@ public class PresetManager {
             "      \"text\": \"Prepare-se!\",\n" +
             "      \"font\": \"minecraft:default\",\n" +
             "      \"color\": \"#FFFFFF\",\n" +
-            "      \"scale\": 1.5,\n" +
             "      \"reveal\": {\n" +
             "        \"type\": \"typewriter\",\n" +
             "        \"duration\": 1000\n" +
@@ -105,7 +105,6 @@ public class PresetManager {
             "    \"type\": \"title\",\n" +
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FFD56A\",\n" +
-            "    \"scale\": 2.5,\n" +
             "    \"duration\": 4000,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"word_by_word\",\n" +
@@ -129,7 +128,6 @@ public class PresetManager {
             "    \"type\": \"title\",\n" +
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FFAA00\",\n" +
-            "    \"scale\": 3.0,\n" +
             "    \"duration\": 3000,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"typewriter\",\n" +
@@ -177,7 +175,6 @@ public class PresetManager {
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FFFF55\",\n" +
             "    \"gradient\": [\"#FFFF55\", \"#FF55FF\"],\n" +
-            "    \"scale\": 2.0,\n" +
             "    \"duration\": 4500,\n" +
             "    \"in\": {\n" +
             "      \"type\": \"zoom_in\",\n" +
@@ -195,8 +192,7 @@ public class PresetManager {
             "    \"subtitle\": {\n" +
             "      \"type\": \"subtitle\",\n" +
             "      \"font\": \"minecraft:default\",\n" +
-            "      \"color\": \"#55FF55\",\n" +
-            "      \"scale\": 1.2\n" +
+            "      \"color\": \"#55FF55\"\n" +
             "    }\n" +
             "  },\n" +
             "\n" +
@@ -204,7 +200,6 @@ public class PresetManager {
             "    \"type\": \"title\",\n" +
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#55FF55\",\n" +
-            "    \"scale\": 2.0,\n" +
             "    \"duration\": 5000,\n" +
             "    \"in\": {\n" +
             "      \"type\": \"fade_in\",\n" +
@@ -217,8 +212,7 @@ public class PresetManager {
             "    \"subtitle\": {\n" +
             "      \"type\": \"subtitle\",\n" +
             "      \"font\": \"minecraft:default\",\n" +
-            "      \"color\": \"#AAAAAA\",\n" +
-            "      \"scale\": 1.0\n" +
+            "      \"color\": \"#AAAAAA\"\n" +
             "    }\n" +
             "  },\n" +
             "\n" +
@@ -226,7 +220,6 @@ public class PresetManager {
             "    \"type\": \"title\",\n" +
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FF5555\",\n" +
-            "    \"scale\": 3.5,\n" +
             "    \"duration\": 3000,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"glyph_scramble\",\n" +
@@ -250,7 +243,6 @@ public class PresetManager {
             "    \"type\": \"title\",\n" +
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#55FF55\",\n" +
-            "    \"scale\": 3.0,\n" +
             "    \"duration\": 3500,\n" +
             "    \"in\": {\n" +
             "      \"type\": \"zoom_in\",\n" +
@@ -270,7 +262,6 @@ public class PresetManager {
             "    \"type\": \"title\",\n" +
             "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FF5555\",\n" +
-            "    \"scale\": 2.8,\n" +
             "    \"duration\": 3500,\n" +
             "    \"in\": {\n" +
             "      \"type\": \"slide_down\",\n" +
@@ -305,10 +296,10 @@ public class PresetManager {
             "    }\n" +
             "  }\n" +
             "}";
- 
+
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             writer.write(defaultJson);
-            TitleFxMod.LOGGER.info("Created default_presets.json file.");
+            TitleFxMod.LOGGER.info("Created default_presets_v2.json file.");
         } catch (IOException e) {
             TitleFxMod.LOGGER.error("Failed to write default presets", e);
         }
