@@ -39,4 +39,60 @@ public class VanillaTitleLayout {
             return new PositionPayload(TITLE_ANCHOR, TITLE_X, TITLE_Y, TITLE_ALIGN);
         }
     }
+
+    public static boolean isDefaultVanillaLayout(String type, float scale, PositionPayload pos) {
+        if (pos == null) return true;
+        String t = type.toLowerCase(Locale.ROOT);
+        if ("title".equals(t)) {
+            return Math.abs(scale - TITLE_SCALE) < 0.01f && 
+                   TITLE_ANCHOR.equalsIgnoreCase(pos.anchor()) && 
+                   pos.x() == TITLE_X && 
+                   pos.y() == TITLE_Y && 
+                   TITLE_ALIGN.equalsIgnoreCase(pos.alignment());
+        } else if ("subtitle".equals(t)) {
+            return Math.abs(scale - SUBTITLE_SCALE) < 0.01f && 
+                   SUBTITLE_ANCHOR.equalsIgnoreCase(pos.anchor()) && 
+                   pos.x() == SUBTITLE_X && 
+                   pos.y() == SUBTITLE_Y && 
+                   SUBTITLE_ALIGN.equalsIgnoreCase(pos.alignment());
+        } else if ("actionbar".equals(t)) {
+            return Math.abs(scale - ACTIONBAR_SCALE) < 0.01f && 
+                   ACTIONBAR_ANCHOR.equalsIgnoreCase(pos.anchor()) && 
+                   pos.x() == ACTIONBAR_X && 
+                   pos.y() == ACTIONBAR_Y && 
+                   ACTIONBAR_ALIGN.equalsIgnoreCase(pos.alignment());
+        }
+        return false;
+    }
+
+    public static boolean isVanillaLikeLayout(String type, PositionPayload pos) {
+        if (pos == null) return true;
+        String t = type.toLowerCase(Locale.ROOT);
+        if ("title".equals(t) || "subtitle".equals(t)) {
+            return "center".equalsIgnoreCase(pos.anchor()) && "center".equalsIgnoreCase(pos.alignment());
+        } else if ("actionbar".equals(t)) {
+            return "bottom".equalsIgnoreCase(pos.anchor()) && "center".equalsIgnoreCase(pos.alignment());
+        }
+        return false;
+    }
+
+    public static float[] resolveVanillaLikeCoordinates(String type, int screenWidth, int screenHeight, float scale, float lineWidth, int offsetX, int offsetY) {
+        float x = (screenWidth - (lineWidth * scale)) / 2.0f + offsetX;
+        float y = 0.0f;
+        String t = type.toLowerCase(Locale.ROOT);
+        if ("title".equals(t)) {
+            y = (screenHeight / 2.0f) - 20.0f - (8.0f * scale) + (offsetY + 40);
+        } else if ("subtitle".equals(t)) {
+            y = (screenHeight / 2.0f) + 5.0f - (8.0f * scale) + (offsetY - 10);
+        } else if ("actionbar".equals(t)) {
+            y = screenHeight + offsetY - (4.0f * scale);
+        }
+        return new float[]{x, y};
+    }
+
+    public static float[] resolveVanillaLikeCoordinates(String type, int screenWidth, int screenHeight, float scale, float lineWidth) {
+        String t = type.toLowerCase(Locale.ROOT);
+        int defaultY = "subtitle".equals(t) ? 10 : ("actionbar".equals(t) ? -59 : -40);
+        return resolveVanillaLikeCoordinates(type, screenWidth, screenHeight, scale, lineWidth, 0, defaultY);
+    }
 }

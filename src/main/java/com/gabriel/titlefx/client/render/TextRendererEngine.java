@@ -132,11 +132,11 @@ public class TextRendererEngine {
         // Draw line by line
         PoseStack poseStack = guiGraphics.pose();
         
+        boolean useVanillaLike = isStandardType && com.gabriel.titlefx.common.model.VanillaTitleLayout.isVanillaLikeLayout(layer.type(), layer.position());
+
         for (int l = 0; l < lines.length; l++) {
             String lineText = lines[l];
             List<RenderableGlyph> lineGlyphs = glyphLines.get(l);
-
-            float lineY = startY + (l * lineHeight * scale);
 
             float targetLineWidth = 0.0f;
             for (RenderableGlyph g : lineGlyphs) {
@@ -144,13 +144,30 @@ public class TextRendererEngine {
             }
             float scaledLineWidth = targetLineWidth * scale;
 
-            // Calculate start X based on alignment
-            float startX = anchorX + layer.position().x();
-            String alignment = layer.position().alignment().toLowerCase(Locale.ROOT);
-            if (alignment.equals("center")) {
-                startX -= (scaledLineWidth / 2.0f);
-            } else if (alignment.equals("right")) {
-                startX -= scaledLineWidth;
+            float startX;
+            float lineY;
+
+            if (useVanillaLike) {
+                float[] coords = com.gabriel.titlefx.common.model.VanillaTitleLayout.resolveVanillaLikeCoordinates(
+                    layer.type(),
+                    screenWidth,
+                    screenHeight,
+                    scale,
+                    targetLineWidth,
+                    layer.position().x(),
+                    layer.position().y()
+                );
+                startX = coords[0];
+                lineY = coords[1] + (l * lineHeight * scale);
+            } else {
+                lineY = startY + (l * lineHeight * scale);
+                startX = anchorX + layer.position().x();
+                String alignment = layer.position().alignment().toLowerCase(Locale.ROOT);
+                if (alignment.equals("center")) {
+                    startX -= (scaledLineWidth / 2.0f);
+                } else if (alignment.equals("right")) {
+                    startX -= scaledLineWidth;
+                }
             }
 
             if (!needsGlyphRender) {

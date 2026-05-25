@@ -23,7 +23,12 @@ public class ServerFontManager {
 
     public static class ScanResult {
         public String absolutePath = "";
+        public boolean directoryExists = false;
+        public boolean directoryReadable = false;
+        public int rawFileCount = 0;
         public int ttfOtfCount = 0;
+        public List<String> allFilesFound = new ArrayList<>();
+        public List<String> candidateFontFiles = new ArrayList<>();
         public List<String> registeredFonts = new ArrayList<>();
         public Map<String, String> rejectedFiles = new LinkedHashMap<>();
     }
@@ -48,14 +53,27 @@ public class ServerFontManager {
             FONTS_DIR.mkdirs();
         }
 
+        result.directoryExists = FONTS_DIR.exists();
+        result.directoryReadable = FONTS_DIR.canRead();
+
         File[] files = FONTS_DIR.listFiles();
         if (files != null) {
+            result.rawFileCount = files.length;
             for (File file : files) {
                 if (file.isDirectory()) continue;
-                String lower = file.getName().toLowerCase(Locale.ROOT);
+                String fileName = file.getName();
+                result.allFilesFound.add(fileName);
+
+                String lower = fileName.toLowerCase(Locale.ROOT);
                 if (lower.endsWith(".ttf") || lower.endsWith(".otf")) {
+                    result.candidateFontFiles.add(fileName);
                     result.ttfOtfCount++;
                     
+                    if (!file.canRead()) {
+                        result.rejectedFiles.put(fileName, "Arquivo sem permissão de leitura");
+                        continue;
+                    }
+
                     try {
                         if (!file.getCanonicalPath().startsWith(FONTS_DIR.getCanonicalPath())) {
                             TitleFxMod.LOGGER.warn("Skipping file due to path traversal attempt: " + file.getName());
@@ -67,7 +85,6 @@ public class ServerFontManager {
                         continue;
                     }
 
-                    String fileName = file.getName();
                     int dotIdx = fileName.lastIndexOf('.');
                     if (dotIdx == -1) continue;
 
@@ -107,6 +124,11 @@ public class ServerFontManager {
                     TitleFxMod.LOGGER.info("Registered server font: " + fontId + " (" + fileName + ")");
                 }
             }
+            if (files.length == 0) {
+                TitleFxMod.LOGGER.info("Server font directory is empty: " + result.absolutePath);
+            }
+        } else {
+            TitleFxMod.LOGGER.warn("Server font listFiles() returned null for: " + result.absolutePath);
         }
 
         calculateRegistryHash();

@@ -47,36 +47,7 @@ public class CTitleCommand {
             )
         );
 
-        // Friendly commands:
-        // /ctitle title <targets> <text>
-        base.then(Commands.literal("title")
-            .requires(src -> src.hasPermission(permLevel))
-            .then(Commands.argument("targets", EntityArgument.players())
-                .then(Commands.argument("text", StringArgumentType.greedyString())
-                    .executes(ctx -> executeFriendly(ctx, "title"))
-                )
-            )
-        );
 
-        // /ctitle subtitle <targets> <text>
-        base.then(Commands.literal("subtitle")
-            .requires(src -> src.hasPermission(permLevel))
-            .then(Commands.argument("targets", EntityArgument.players())
-                .then(Commands.argument("text", StringArgumentType.greedyString())
-                    .executes(ctx -> executeFriendly(ctx, "subtitle"))
-                )
-            )
-        );
-
-        // /ctitle actionbar <targets> <text>
-        base.then(Commands.literal("actionbar")
-            .requires(src -> src.hasPermission(permLevel))
-            .then(Commands.argument("targets", EntityArgument.players())
-                .then(Commands.argument("text", StringArgumentType.greedyString())
-                    .executes(ctx -> executeFriendly(ctx, "actionbar"))
-                )
-            )
-        );
 
         // /ctitle send <presetId> <targets> [text]
         base.then(Commands.literal("send")
@@ -178,54 +149,7 @@ public class CTitleCommand {
         dispatcher.register(base);
     }
 
-    private static int executeFriendly(CommandContext<CommandSourceStack> context, String type) {
-        try {
-            Collection<ServerPlayer> players = EntityArgument.getPlayers(context, "targets");
-            String rawText = StringArgumentType.getString(context, "text").trim();
 
-            // Strip surrounding quotes if present
-            if (rawText.startsWith("\"") && rawText.endsWith("\"") && rawText.length() >= 2) {
-                rawText = rawText.substring(1, rawText.length() - 1);
-            }
-
-            float defaultScale = TextDefaults.getDefaultScale(type);
-            PositionPayload defaultPos = TextDefaults.getDefaultPosition(type);
-            int defaultDuration = TextDefaults.getDefaultDuration(type);
-
-            // Friendly default styling
-            TextLayerPayload layer = new TextLayerPayload(
-                type,
-                rawText,
-                "minecraft:default",
-                "#FFFFFF",
-                null,
-                defaultScale,
-                defaultPos,
-                RevealPayload.defaultEmpty(),
-                new InAnimPayload(InAnimationType.FADE_IN, 500, Easing.LINEAR),
-                IdleAnimPayload.defaultEmpty(),
-                new OutAnimPayload(OutAnimationType.FADE_OUT, 500, Easing.LINEAR),
-                defaultDuration
-            );
-
-            AnimatedTextPayload payload = new AnimatedTextPayload(
-                UUID.randomUUID().toString(),
-                Collections.singletonList(layer),
-                defaultDuration
-            );
-
-            ShowAnimatedTextPacket packet = new ShowAnimatedTextPacket(payload);
-            for (ServerPlayer player : players) {
-                NetworkHandler.sendToPlayer(player, packet);
-            }
-
-            context.getSource().sendSuccess(() -> Component.literal("Enviado " + type + " animado para " + players.size() + " jogadores."), true);
-            return 1;
-        } catch (Exception e) {
-            context.getSource().sendFailure(Component.literal("Erro ao executar comando: " + e.getMessage()));
-            return 0;
-        }
-    }
 
     private static int executeShow(CommandContext<CommandSourceStack> context) {
         try {
@@ -374,22 +298,45 @@ public class CTitleCommand {
 
         // Imprime diagnóstico detalhado no chat do jogo
         context.getSource().sendSuccess(() -> Component.literal("§6=== TitleFX Font Scan ==="), false);
-        context.getSource().sendSuccess(() -> Component.literal("§7Pasta escaneada:"), false);
-        context.getSource().sendSuccess(() -> Component.literal("§f" + result.absolutePath), false);
-        context.getSource().sendSuccess(() -> Component.literal("§7Arquivos candidatos encontrados: §f" + result.ttfOtfCount), false);
+        context.getSource().sendSuccess(() -> Component.literal("§7Pasta: §f" + result.absolutePath), false);
+        context.getSource().sendSuccess(() -> Component.literal("§7Pasta existe: §f" + (result.directoryExists ? "sim" : "não")), false);
+        context.getSource().sendSuccess(() -> Component.literal("§7Pasta legível: §f" + (result.directoryReadable ? "sim" : "não")), false);
+        context.getSource().sendSuccess(() -> Component.literal("§7Total bruto de itens encontrados: §f" + result.rawFileCount), false);
         
-        context.getSource().sendSuccess(() -> Component.literal("§7Fontes registradas: §a" + result.registeredFonts.size()), false);
-        for (String fontMap : result.registeredFonts) {
-            context.getSource().sendSuccess(() -> Component.literal("  - " + fontMap), false);
+        context.getSource().sendSuccess(() -> Component.literal("§7Arquivos encontrados:"), false);
+        if (result.allFilesFound.isEmpty()) {
+            context.getSource().sendSuccess(() -> Component.literal("  - Nenhum"), false);
+        } else {
+            for (String file : result.allFilesFound) {
+                context.getSource().sendSuccess(() -> Component.literal("  - " + file), false);
+            }
+        }
+
+        context.getSource().sendSuccess(() -> Component.literal("§7Candidatos .ttf/.otf:"), false);
+        if (result.candidateFontFiles.isEmpty()) {
+            context.getSource().sendSuccess(() -> Component.literal("  - Nenhum"), false);
+        } else {
+            for (String file : result.candidateFontFiles) {
+                context.getSource().sendSuccess(() -> Component.literal("  - " + file), false);
+            }
+        }
+
+        context.getSource().sendSuccess(() -> Component.literal("§7Registradas:"), false);
+        if (result.registeredFonts.isEmpty()) {
+            context.getSource().sendSuccess(() -> Component.literal("  - Nenhum"), false);
+        } else {
+            for (String fontMap : result.registeredFonts) {
+                context.getSource().sendSuccess(() -> Component.literal("  - " + fontMap), false);
+            }
         }
 
         if (!result.rejectedFiles.isEmpty()) {
-            context.getSource().sendSuccess(() -> Component.literal("§cArquivos rejeitados: §f" + result.rejectedFiles.size()), false);
+            context.getSource().sendSuccess(() -> Component.literal("§cRejeitadas com motivo:"), false);
             for (Map.Entry<String, String> entry : result.rejectedFiles.entrySet()) {
                 context.getSource().sendSuccess(() -> Component.literal("  - §c" + entry.getKey() + "§7: " + entry.getValue()), false);
             }
         } else {
-            context.getSource().sendSuccess(() -> Component.literal("§7Arquivos rejeitados: §aNenhum"), false);
+            context.getSource().sendSuccess(() -> Component.literal("§7Rejeitadas com motivo: §aNenhuma"), false);
         }
 
         context.getSource().sendSuccess(() -> Component.literal("§aFontes do servidor recarregadas e sincronizadas com todos os jogadores!"), true);
