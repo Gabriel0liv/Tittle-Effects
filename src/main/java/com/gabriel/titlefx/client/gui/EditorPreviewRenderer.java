@@ -14,7 +14,7 @@ public class EditorPreviewRenderer {
     private boolean playing = false;
 
     /** Cria nova instância e inicia animação a partir de agora. */
-    public void play(EditorDraftState draft, int pvW) {
+    public void play(EditorDraftState draft) {
         if (draft == null) return;
         AnimatedTextPayload payload = draft.toPayload();
         if (payload.layers().isEmpty()) return;
@@ -22,6 +22,9 @@ public class EditorPreviewRenderer {
 
         float textWidth = Minecraft.getInstance().font.width(layer.text());
         if (textWidth <= 0) textWidth = 1.0f;
+
+        // Calculate preview width dynamically based on scaled screen width
+        int pvW = Minecraft.getInstance().getWindow().getGuiScaledWidth() - 24;
 
         float maxScaleByWidth = (pvW * 0.75f) / textWidth;
         float originalScale = draft.effectiveScale();
@@ -63,33 +66,33 @@ public class EditorPreviewRenderer {
     }
 
     /**
-     * Renderiza dentro do retângulo (pvX, pvY, pvW, pvH).
+     * Renderiza dentro do retângulo (x, y, w, h).
      */
-    public void render(GuiGraphics graphics, int pvX, int pvY, int pvW, int pvH) {
+    public void render(GuiGraphics g, int x, int y, int w, int h, float partialTick) {
         if (!playing || instance == null) {
-            renderIdle(graphics, pvX, pvY, pvW, pvH);
+            renderIdle(g, x, y, w, h);
             return;
         }
 
         long now = System.currentTimeMillis();
         if (instance.isExpired(now)) {
             playing = false;
-            renderIdle(graphics, pvX, pvY, pvW, pvH);
+            renderIdle(g, x, y, w, h);
             return;
         }
 
         // Enable scissor to clip text inside the preview panel bounds
-        graphics.enableScissor(pvX, pvY, pvX + pvW, pvY + pvH);
-        graphics.pose().pushPose();
+        g.enableScissor(x, y, x + w, y + h);
+        g.pose().pushPose();
         
         // Translate pose so that 0,0 is the top-left of the preview panel
-        graphics.pose().translate(pvX, pvY, 0);
+        g.pose().translate(x, y, 0);
         
-        // Render the text instance using pvW, pvH as screen dimensions
-        instance.render(graphics, 0f, pvW, pvH, now);
+        // Render the text instance using w, h as screen dimensions
+        instance.render(g, 0f, w, h, now);
         
-        graphics.pose().popPose();
-        graphics.disableScissor();
+        g.pose().popPose();
+        g.disableScissor();
     }
 
     private void renderIdle(GuiGraphics g, int px, int py, int pw, int ph) {

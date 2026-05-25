@@ -21,29 +21,48 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         super(minecraft, width, height, top, bottom, itemHeight);
     }
 
-    public void rebuildMainEntries(EditorDraftState draft, boolean compact, Runnable onChanged) {
+    public void rebuildMainEntries(EditorDraftState draft, boolean compact, int listW, Runnable onChanged) {
         this.clearEntries();
-        // 1. Style Presets (6 styles, 2 per row)
-        StyleCard[] cards = StyleCard.values();
-        this.addEntry(new StyleRowEntry(minecraft, draft, cards[0], cards[1], onChanged));
-        this.addEntry(new StyleRowEntry(minecraft, draft, cards[2], cards[3], onChanged));
-        this.addEntry(new StyleRowEntry(minecraft, draft, cards[4], cards[5], onChanged));
         
+        StyleCard[] allCards = StyleCard.values();
+        
+        if (listW >= 450) {
+            // 3 colunas x 2 linhas
+            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Estilos Preset", new StyleCard[]{allCards[0], allCards[1], allCards[2]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[3], allCards[4], allCards[5]}, onChanged));
+        } else if (listW >= 300) {
+            // 2 colunas x 3 linhas
+            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Estilos Preset", new StyleCard[]{allCards[0], allCards[1]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[2], allCards[3]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[4], allCards[5]}, onChanged));
+        } else {
+            // 1 coluna x 6 linhas
+            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Estilos Preset", new StyleCard[]{allCards[0]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[1]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[2]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[3]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[4]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[5]}, onChanged));
+        }
+
         // 2. Text input
         this.addEntry(new TextEntry(minecraft, draft, onChanged));
-        
-        // 3. Type (only if not compact)
+
+        // 3. Type (only if not compact / couber bem)
         if (!compact) {
             this.addEntry(new TypeEntry(minecraft, draft, false, onChanged));
         }
-        
+
         // 4. Reveal Speed
         this.addEntry(new RevealSpeedEntry(minecraft, draft, onChanged));
-        
+
         // 5. Color input (only if not compact)
         if (!compact) {
             this.addEntry(new ColorEntry(minecraft, draft, onChanged));
         }
+
+        // 6. MoreOptionsEntry
+        this.addEntry(new MoreOptionsEntry(minecraft, onChanged));
     }
 
     public void rebuildAdvancedEntries(EditorDraftState draft, Runnable onChanged) {
@@ -238,36 +257,30 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
     public static class StyleRowEntry extends Entry {
         private final List<Button> buttons = new ArrayList<>();
         private final EditorDraftState draft;
-        private final StyleCard card1;
-        private final StyleCard card2;
+        private final StyleCard[] cards;
+        private final String labelText;
 
-        public StyleRowEntry(Minecraft mc, EditorDraftState draft, StyleCard card1, StyleCard card2, Runnable onChanged) {
+        public StyleRowEntry(Minecraft mc, EditorDraftState draft, String labelText, StyleCard[] cards, Runnable onChanged) {
             this.draft = draft;
-            this.card1 = card1;
-            this.card2 = card2;
+            this.cards = cards;
+            this.labelText = labelText;
 
-            if (card1 != null) {
-                buttons.add(Button.builder(Component.literal(card1.getLabel()), b -> {
-                    card1.apply(draft);
-                    draft.selectedStyleCard = card1.name();
-                    onChanged.run();
-                }).build());
-                buttons.get(0).setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(card1.getDescription())));
-            }
-            if (card2 != null) {
-                buttons.add(Button.builder(Component.literal(card2.getLabel()), b -> {
-                    card2.apply(draft);
-                    draft.selectedStyleCard = card2.name();
-                    onChanged.run();
-                }).build());
-                buttons.get(1).setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(card2.getDescription())));
+            for (StyleCard card : cards) {
+                if (card != null) {
+                    Button btn = Button.builder(Component.literal(card.getLabel()), b -> {
+                        card.apply(draft);
+                        draft.selectedStyleCard = card.name();
+                        onChanged.run();
+                    }).build();
+                    btn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(card.getDescription())));
+                    buttons.add(btn);
+                }
             }
         }
 
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            String labelText = (card1 == StyleCard.BOSS_CINEMATICO) ? "§7Estilos Preset" : "";
             g.drawString(mc.font, labelText, left + 6, top + (height - 9) / 2, 0xFFFFFF);
 
             int labelW = (int) (width * 0.4);
@@ -275,6 +288,8 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             int ctrlW = width - labelW - 20;
 
             int count = buttons.size();
+            if (count == 0) return;
+
             int btnW = (ctrlW - (count - 1) * 4) / count;
 
             for (int i = 0; i < count; i++) {
@@ -284,7 +299,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                 btn.setWidth(btnW);
                 btn.setHeight(18);
 
-                StyleCard card = (i == 0) ? card1 : card2;
+                StyleCard card = cards[i];
                 boolean sel = card.name().equals(draft.selectedStyleCard);
                 String cardLabel = getShortCardLabel(card, width < 450);
                 btn.setMessage(Component.literal(sel ? "► " + cardLabel : cardLabel));
@@ -754,6 +769,39 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             String name = nameMapper.apply(current);
             this.button.setMessage(Component.literal(name));
 
+            this.button.render(g, mouseX, mouseY, partialTick);
+        }
+
+        @Override
+        public List<? extends GuiEventListener> children() {
+            return Collections.singletonList(button);
+        }
+
+        @Override
+        public List<? extends NarratableEntry> narratables() {
+            return Collections.singletonList(button);
+        }
+    }
+
+    public static class MoreOptionsEntry extends Entry {
+        private final Button button;
+
+        public MoreOptionsEntry(Minecraft mc, Runnable onChanged) {
+            this.button = Button.builder(Component.literal("Configurações Avançadas..."), b -> {
+                Minecraft.getInstance().setScreen(new AdvancedEditorScreen((TextEditorScreen) Minecraft.getInstance().screen));
+            }).build();
+        }
+
+        @Override
+        public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
+            int labelW = (int) (width * 0.4);
+            int ctrlX = left + labelW + 10;
+            int ctrlW = width - labelW - 20;
+
+            this.button.setX(ctrlX);
+            this.button.setY(top + (height - 18) / 2);
+            this.button.setWidth(ctrlW);
+            this.button.setHeight(18);
             this.button.render(g, mouseX, mouseY, partialTick);
         }
 
