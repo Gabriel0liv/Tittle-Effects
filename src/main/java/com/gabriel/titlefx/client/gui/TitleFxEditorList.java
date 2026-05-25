@@ -17,8 +17,31 @@ import java.util.List;
 
 public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEditorList.Entry> {
 
+    private int listLeft;
+    private int listWidth;
+    private int contentWidth;
+
     public TitleFxEditorList(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
         super(minecraft, width, height, top, bottom, itemHeight);
+        this.listWidth = width;
+        this.contentWidth = Math.max(160, width - 32);
+    }
+
+    public void setListBounds(int x, int width) {
+        this.listLeft = x;
+        this.listWidth = width;
+        this.contentWidth = Math.max(160, width - 32);
+        this.setLeftPos(x);
+    }
+
+    @Override
+    public int getRowWidth() {
+        return this.contentWidth;
+    }
+
+    @Override
+    protected int getScrollbarPosition() {
+        return this.listLeft + this.listWidth - 8;
     }
 
     public static String fitLabel(String text, int maxWidth) {
@@ -77,19 +100,11 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         // 2. Text input
         this.addEntry(new TextEntry(minecraft, draft, onChanged));
 
-        // 3. Type (only if not compact / couber bem)
-        if (!compact) {
-            this.addEntry(new TypeEntry(minecraft, draft, false, onChanged));
-        }
-
-        // 4. Reveal Speed
+        // 3. Reveal Speed
         this.addEntry(new RevealSpeedEntry(minecraft, draft, onChanged));
 
-        // 5. Color input (only if not compact)
-        if (!compact) {
-            this.addEntry(new ColorEntry(minecraft, draft, onChanged));
-        }
-
+        // 4. Color input
+        this.addEntry(new ColorEntry(minecraft, draft, onChanged));
     }
 
     public void rebuildAdvancedEntries(EditorDraftState draft, Runnable onChanged) {
@@ -308,14 +323,14 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
             if (!labelText.isEmpty()) {
-                int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+                int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
                 g.drawString(mc.font, labelText, left + 6, labelY, 0xFFFFFF);
             }
 
@@ -323,7 +338,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             if (count == 0) return;
 
             int btnW = (ctrlW - (count - 1) * 4) / count;
-            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
+            int btnY = compact ? (top + 20) : (top + (height - 18) / 2);
 
             for (int i = 0; i < count; i++) {
                 Button btn = buttons.get(i);
@@ -387,16 +402,16 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, "§7Texto", left + 6, labelY, 0xFFFFFF);
 
-            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
+            int ctrlY = compact ? (top + 20) : (top + (height - 14) / 2);
             this.editBox.setX(ctrlX);
             this.editBox.setY(ctrlY);
             this.editBox.setWidth(ctrlW);
@@ -446,18 +461,18 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, "§7Tipo", left + 6, labelY, 0xFFFFFF);
 
             int count = buttons.size();
             int btnW = (ctrlW - (count - 1) * 4) / count;
-            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
+            int btnY = compact ? (top + 20) : (top + (height - 18) / 2);
 
             for (int i = 0; i < count; i++) {
                 Button btn = buttons.get(i);
@@ -509,17 +524,17 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, "§7Velocidade", left + 6, labelY, 0xFFFFFF);
 
             int btnW = (ctrlW - 4 * 4) / 5;
-            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
+            int btnY = compact ? (top + 20) : (top + (height - 18) / 2);
 
             for (int i = 0; i < 5; i++) {
                 Button btn = buttons.get(i);
@@ -568,16 +583,16 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, "§7Cor (HEX)", left + 6, labelY, 0xFFFFFF);
 
-            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
+            int ctrlY = compact ? (top + 20) : (top + (height - 14) / 2);
             this.editBox.setX(ctrlX);
             this.editBox.setY(ctrlY);
             this.editBox.setWidth(ctrlW);
@@ -623,16 +638,16 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, labelText, left + 6, labelY, 0xFFFFFF);
 
-            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
+            int ctrlY = compact ? (top + 20) : (top + (height - 14) / 2);
             this.editBox.setX(ctrlX);
             this.editBox.setY(ctrlY);
             this.editBox.setWidth(ctrlW);
@@ -690,24 +705,24 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
             int inputW = (ctrlW - 12) / 2;
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, "§7Posição X / Y", left + 6, labelY, 0xFFFFFF);
 
-            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
+            int ctrlY = compact ? (top + 20) : (top + (height - 14) / 2);
             this.xEdit.setX(ctrlX);
             this.xEdit.setY(ctrlY);
             this.xEdit.setWidth(inputW);
             this.xEdit.setHeight(14);
             this.xEdit.render(g, mouseX, mouseY, partialTick);
 
-            int commaY = compact ? (top + 18) : (top + (height - 9) / 2);
+            int commaY = compact ? (top + 22) : (top + (height - 9) / 2);
             g.drawString(mc.font, ",", ctrlX + inputW + 4, commaY, 0x80FFFFFF);
 
             this.yEdit.setX(ctrlX + inputW + 8);
@@ -750,17 +765,17 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, "§7Alinhamento", left + 6, labelY, 0xFFFFFF);
 
             int btnW = (ctrlW - 2 * 4) / 3;
-            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
+            int btnY = compact ? (top + 20) : (top + (height - 18) / 2);
 
             for (int i = 0; i < 3; i++) {
                 Button btn = buttons.get(i);
@@ -820,16 +835,16 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            boolean compact = width < 420;
+            boolean compact = width < 360;
 
             int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
             int ctrlX = compact ? (left + 6) : (left + labelW + 10);
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
-            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
             g.drawString(mc.font, labelText, left + 6, labelY, 0xFFFFFF);
 
-            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
+            int btnY = compact ? (top + 20) : (top + (height - 18) / 2);
             this.button.setX(ctrlX);
             this.button.setY(btnY);
             this.button.setWidth(ctrlW);

@@ -51,9 +51,9 @@ public class TextEditorScreen extends Screen {
         this.addRenderableWidget(applyBtn);
 
         // Scrollable option list
-        int itemHeight = l.listW() < 420 ? 36 : 24;
+        int itemHeight = 42;
         list = new TitleFxEditorList(this.minecraft, l.listW(), l.listH(), l.listY(), l.listY() + l.listH(), itemHeight);
-        list.setLeftPos(l.listX());
+        list.setListBounds(l.listX(), l.listW());
         list.rebuildMainEntries(draft, l.compact(), l.listW(), this::onDraftChanged);
         this.addRenderableWidget(list);
 
@@ -61,18 +61,21 @@ public class TextEditorScreen extends Screen {
         int fBtnW = (l.previewW() - 2 * 8) / 3;
         int footerCenterY = l.footerY() + (l.footerH() - 20) / 2;
 
-        Button copyBtn = Button.builder(Component.literal("Copiar comando"), btn -> {
+        String copyLabel = fBtnW < 65 ? "Copiar" : "Copiar comando";
+        Button copyBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(copyLabel, fBtnW)), btn -> {
             Minecraft.getInstance().keyboardHandler.setClipboard(draft.toCommand());
             setStatus("Comando copiado!");
         }).bounds(l.previewX(), footerCenterY, fBtnW, 20).build();
         this.addRenderableWidget(copyBtn);
 
-        Button moreBtn = Button.builder(Component.literal("Mais opções"), btn -> {
+        String moreLabel = fBtnW < 65 ? "Opções" : "Mais opções";
+        Button moreBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(moreLabel, fBtnW)), btn -> {
             Minecraft.getInstance().setScreen(new AdvancedEditorScreen(this));
         }).bounds(l.previewX() + fBtnW + 8, footerCenterY, fBtnW, 20).build();
         this.addRenderableWidget(moreBtn);
 
-        Button closeBtn = Button.builder(Component.literal("✕ Fechar"), btn -> this.onClose())
+        String closeLabel = "✕ Fechar";
+        Button closeBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(closeLabel, l.previewW() - 2 * fBtnW - 2 * 8)), btn -> this.onClose())
             .bounds(l.previewX() + 2 * (fBtnW + 8), footerCenterY, l.previewW() - 2 * fBtnW - 2 * 8, 20).build();
         this.addRenderableWidget(closeBtn);
     }
@@ -119,22 +122,28 @@ public class TextEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(g);
+        // Transparent modern dark overlay
+        g.fill(0, 0, this.width, this.height, 0xCC05050A);
+
         EditorLayout l = EditorLayout.calculate(this.width, this.height);
 
         // Header Background
-        g.fill(0, 0, this.width, l.previewY() - 4, 0xFF0C0C1A);
+        g.fill(0, 0, this.width, l.previewY() - 4, 0xEE0C0C1A);
         g.drawCenteredString(this.font, "§bTitleFX §7Visual Editor", this.width / 2, l.headerY(), 0xFFFFFF);
 
         // Preview Background
-        g.fill(l.previewX(), l.previewY(), l.previewX() + l.previewW(), l.previewY() + l.previewH(), 0xFF0A0A18);
-        g.fill(l.previewX() + 1, l.previewY() + 1, l.previewX() + l.previewW() - 1, l.previewY() + l.previewH() - 1, 0xFF0D0D22);
+        g.fill(l.previewX(), l.previewY(), l.previewX() + l.previewW(), l.previewY() + l.previewH(), 0xEE0A0A18);
+        g.fill(l.previewX() + 1, l.previewY() + 1, l.previewX() + l.previewW() - 1, l.previewY() + l.previewH() - 1, 0xEE0D0D22);
         
         // Render preview
         previewRenderer.render(g, l.previewX(), l.previewY(), l.previewW(), l.previewH(), partialTick);
 
+        // Scrollable List Panel Background
+        g.fill(l.listX(), l.listY(), l.listX() + l.listW(), l.listY() + l.listH(), 0xAA080812);
+        g.fill(l.listX(), l.listY(), l.listX() + l.listW(), l.listY() + 1, 0x44FFFFFF);
+
         // Footer Background
-        g.fill(0, l.footerY(), this.width, this.height, 0xFF0C0C1A);
+        g.fill(0, l.footerY(), this.width, this.height, 0xEE0C0C1A);
 
         // Status message
         if (statusTimer > 0 && !statusMsg.isEmpty()) {

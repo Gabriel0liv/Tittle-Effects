@@ -48,36 +48,39 @@ public class AdvancedEditorScreen extends Screen {
         int footerCenterY = footerY + (footerH - 20) / 2;
 
         // Scrollable list
-        int itemHeight = listW < 420 ? 36 : 24;
+        int itemHeight = 44;
         list = new TitleFxEditorList(this.minecraft, listW, listH, listY, listY + listH, itemHeight);
-        list.setLeftPos(listX);
+        list.setListBounds(listX, listW);
         list.rebuildAdvancedEntries(draft, this::onDraftChanged);
         this.addRenderableWidget(list);
 
         // Footer buttons
         int fBtnW = (listW - 2 * 8) / 3;
 
-        Button backBtn = Button.builder(Component.literal("Voltar"), btn -> {
+        String backLabel = "Voltar";
+        Button backBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(backLabel, fBtnW)), btn -> {
             parent.onDraftChanged();
             Minecraft.getInstance().setScreen(parent);
         }).bounds(listX, footerCenterY, fBtnW, 20).build();
         this.addRenderableWidget(backBtn);
 
-        Button applyBtn = Button.builder(Component.literal("Aplicar"), btn -> {
+        String applyLabel = "Aplicar";
+        Button applyBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(applyLabel, fBtnW)), btn -> {
             sendEditedText(false);
         }).bounds(listX + fBtnW + 8, footerCenterY, fBtnW, 20).build();
         this.addRenderableWidget(applyBtn);
 
-        sendAllBtn = Button.builder(Component.literal("Enviar (Todos)"), btn -> {
+        String sendAllLabel = fBtnW < 75 ? "Todos" : "Enviar (Todos)";
+        sendAllBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(sendAllLabel, listW - 2 * fBtnW - 2 * 8)), btn -> {
             if (!confirmSendAll) {
                 confirmSendAll = true;
                 confirmTimer = 60; // 3 seconds
-                btn.setMessage(Component.literal("Confirmar?"));
+                btn.setMessage(Component.literal(TitleFxEditorList.fitLabel("Confirmar?", listW - 2 * fBtnW - 2 * 8)));
             } else {
                 sendEditedText(true);
                 confirmSendAll = false;
                 confirmTimer = 0;
-                btn.setMessage(Component.literal("Enviar (Todos)"));
+                btn.setMessage(Component.literal(TitleFxEditorList.fitLabel(sendAllLabel, listW - 2 * fBtnW - 2 * 8)));
             }
         }).bounds(listX + 2 * (fBtnW + 8), footerCenterY, listW - 2 * fBtnW - 2 * 8, 20).build();
         this.addRenderableWidget(sendAllBtn);
@@ -112,7 +115,8 @@ public class AdvancedEditorScreen extends Screen {
             if (confirmTimer == 0) {
                 confirmSendAll = false;
                 if (sendAllBtn != null) {
-                    sendAllBtn.setMessage(Component.literal("Enviar (Todos)"));
+                    String sendAllLabel = (sendAllBtn.getWidth() < 75) ? "Todos" : "Enviar (Todos)";
+                    sendAllBtn.setMessage(Component.literal(TitleFxEditorList.fitLabel(sendAllLabel, sendAllBtn.getWidth())));
                 }
             }
         }
@@ -133,19 +137,29 @@ public class AdvancedEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(g);
+        // Transparent modern dark overlay
+        g.fill(0, 0, this.width, this.height, 0xCC05050A);
 
         int margin = 12;
         int headerH = 24;
         int footerH = 28;
+        
+        int listX = margin;
+        int listY = headerH + margin;
+        int listW = this.width - margin * 2;
+        int listH = this.height - listY - footerH - 8;
         int footerY = this.height - footerH;
 
         // Header Background
-        g.fill(0, 0, this.width, headerH + margin - 4, 0xFF0C0C1A);
+        g.fill(0, 0, this.width, listY - 4, 0xEE0C0C1A);
         g.drawCenteredString(this.font, "§bTitleFX §7Configurações Avançadas", this.width / 2, 6, 0xFFFFFF);
 
+        // Scrollable List Panel Background
+        g.fill(listX, listY, listX + listW, listY + listH, 0xAA080812);
+        g.fill(listX, listY, listX + listW, listY + 1, 0x44FFFFFF);
+
         // Footer Background
-        g.fill(0, footerY, this.width, this.height, 0xFF0C0C1A);
+        g.fill(0, footerY, this.width, this.height, 0xEE0C0C1A);
 
         // Status message
         if (statusTimer > 0 && !statusMsg.isEmpty()) {
