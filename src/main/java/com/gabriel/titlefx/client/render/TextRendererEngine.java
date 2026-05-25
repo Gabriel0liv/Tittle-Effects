@@ -1,6 +1,6 @@
 package com.gabriel.titlefx.client.render;
 
-import com.gabriel.titlefx.client.font.ClientFontManager;
+
 import com.gabriel.titlefx.common.animation.IdleAnimationType;
 import com.gabriel.titlefx.common.animation.InAnimationType;
 import com.gabriel.titlefx.common.animation.OutAnimationType;
@@ -27,7 +27,7 @@ public class TextRendererEngine {
         if (text == null || text.isEmpty()) return;
 
         Minecraft mc = Minecraft.getInstance();
-        ResourceLocation fontLoc = ClientFontManager.getFont(layer.fontId());
+        ResourceLocation fontLoc = new net.minecraft.resources.ResourceLocation("minecraft", "default");
         Font font = mc.font;
         Style fontStyle = Style.EMPTY.withFont(fontLoc);
 

@@ -45,17 +45,23 @@ public class AnimationEngine {
                 case FADE_IN:
                     baseAlpha *= inT;
                     break;
+                case CINEMATIC_ZOOM_IN:
+                    baseScale *= (0.90f + 0.10f * inT);
+                    baseAlpha *= inT;
+                    break;
+                case SOFT_POP:
+                    baseScale *= Easing.EASE_OUT_BACK.ease(inProgress);
+                    baseAlpha *= inT;
+                    break;
+                case SCALE_REVEAL:
+                    baseScale *= inT;
+                    baseAlpha *= inT;
+                    break;
                 case SLIDE_UP:
-                    baseTranslateY += (1.0f - inT) * 30.0f;
-                    break;
                 case SLIDE_DOWN:
-                    baseTranslateY += (1.0f - inT) * -30.0f;
-                    break;
                 case SLIDE_LEFT:
-                    baseTranslateX += (1.0f - inT) * 50.0f;
-                    break;
                 case SLIDE_RIGHT:
-                    baseTranslateX += (1.0f - inT) * -50.0f;
+                    baseTranslateY += (1.0f - inT) * 30.0f; // legacy slide fallback
                     break;
                 case ZOOM_IN:
                     baseScale *= inT;
@@ -76,17 +82,15 @@ public class AnimationEngine {
                 case FADE_OUT:
                     baseAlpha *= (1.0f - outT);
                     break;
+                case SHRINK_FADE:
+                    baseScale *= (1.0f - outT);
+                    baseAlpha *= (1.0f - outT);
+                    break;
                 case SLIDE_UP_OUT:
-                    baseTranslateY += outT * -30.0f;
-                    break;
                 case SLIDE_DOWN_OUT:
-                    baseTranslateY += outT * 30.0f;
-                    break;
                 case SLIDE_LEFT_OUT:
-                    baseTranslateX += outT * -50.0f;
-                    break;
                 case SLIDE_RIGHT_OUT:
-                    baseTranslateX += outT * 50.0f;
+                    baseTranslateY += outT * -30.0f; // legacy slide fallback
                     break;
                 case ZOOM_OUT:
                 case POP_OUT:
@@ -102,6 +106,13 @@ public class AnimationEngine {
 
         if (idleType != IdleAnimationType.NONE) {
             switch (idleType) {
+                case SUBTLE_PULSE:
+                    baseScale *= 1.0f + (float) Math.sin(timeSec * 2.5f) * 0.02f * intensity;
+                    break;
+                case BREATHING:
+                    baseScale *= 1.0f + (float) Math.sin(timeSec * 1.5f) * 0.03f * intensity;
+                    baseAlpha *= 0.85f + 0.15f * (float) Math.cos(timeSec * 1.5f) * intensity;
+                    break;
                 case PULSE:
                     baseScale *= 1.0f + (float) Math.sin(timeSec * 4.0f) * 0.06f * intensity;
                     break;
@@ -122,25 +133,38 @@ public class AnimationEngine {
         for (int i = 0; i < glyphs.size(); i++) {
             RenderableGlyph glyph = glyphs.get(i);
 
+            // DISSOLVE (Out Animation - Glyph Level)
+            if (outProgress > 0.0f && outType == OutAnimationType.DISSOLVE) {
+                Random r = new Random(instance.getLayer().text().hashCode() + i * 31L);
+                if (r.nextFloat() < outProgress) {
+                    glyph.visible = false;
+                    glyph.alpha = 0.0f;
+                }
+            }
+
             // IDLE ANIMATION (GLYPH LEVEL)
             if (idleType != IdleAnimationType.NONE) {
                 switch (idleType) {
-                    case SHAKE:
-                        // Shake offset is random and jittery per letter
-                        glyph.xOffset += (rand.nextFloat() * 2.0f - 1.0f) * intensity * 1.5f;
-                        glyph.yOffset += (rand.nextFloat() * 2.0f - 1.0f) * intensity * 1.5f;
+                    case SUBTLE_SHAKE:
+                        glyph.xOffset += (rand.nextFloat() * 0.6f - 0.3f) * intensity;
+                        glyph.yOffset += (rand.nextFloat() * 0.6f - 0.3f) * intensity;
                         break;
-                    case WAVE:
-                        // Sine wave offset per character index
-                        glyph.yOffset += (float) Math.sin(timeSec * 6.0f + i * 0.4f) * 4.0f * intensity;
+                    case WAVE_SOFT:
+                        glyph.yOffset += (float) Math.sin(timeSec * 3.0f + i * 0.2f) * 2.0f * intensity;
                         break;
                     case FLICKER:
-                        // Flicker alpha occasionally
                         long seed = (elapsedMs / 60) + i;
                         rand.setSeed(seed);
                         if (rand.nextFloat() < 0.15f * intensity) {
                             glyph.alpha *= 0.2f + rand.nextFloat() * 0.3f;
                         }
+                        break;
+                    case SHAKE:
+                        glyph.xOffset += (rand.nextFloat() * 2.0f - 1.0f) * intensity * 1.5f;
+                        glyph.yOffset += (rand.nextFloat() * 2.0f - 1.0f) * intensity * 1.5f;
+                        break;
+                    case WAVE:
+                        glyph.yOffset += (float) Math.sin(timeSec * 6.0f + i * 0.4f) * 4.0f * intensity;
                         break;
                 }
             }

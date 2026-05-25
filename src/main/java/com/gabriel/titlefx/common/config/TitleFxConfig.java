@@ -24,9 +24,7 @@ public class TitleFxConfig {
         public final ForgeConfigSpec.IntValue permissionLevel;
         public final ForgeConfigSpec.BooleanValue allowPreviewCommand;
         public final ForgeConfigSpec.IntValue maxMessageLength;
-        public final ForgeConfigSpec.IntValue maxFontFileSizeMb;
-        public final ForgeConfigSpec.IntValue fontChunkSizeKb;
-        public final ForgeConfigSpec.IntValue maxTotalFontSyncMb;
+
 
         public Common(ForgeConfigSpec.Builder builder) {
             builder.push("general");
@@ -43,17 +41,7 @@ public class TitleFxConfig {
                     .comment("Maximum character length for incoming texts.")
                     .defineInRange("maxMessageLength", 512, 1, 4096);
 
-            maxFontFileSizeMb = builder
-                    .comment("Maximum allowed font file size in Megabytes for sync.")
-                    .defineInRange("maxFontFileSizeMb", 16, 1, 128);
 
-            fontChunkSizeKb = builder
-                    .comment("Size of font sync chunks in Kilobytes.")
-                    .defineInRange("fontChunkSizeKb", 32, 4, 64);
-
-            maxTotalFontSyncMb = builder
-                    .comment("Maximum allowed accumulated fonts sync size in Megabytes.")
-                    .defineInRange("maxTotalFontSyncMb", 64, 4, 1024);
 
             builder.pop();
         }
@@ -61,7 +49,7 @@ public class TitleFxConfig {
 
     public static class Client {
         public final ForgeConfigSpec.BooleanValue enableAnimations;
-        public final ForgeConfigSpec.BooleanValue enableExternalFonts;
+
         public final ForgeConfigSpec.BooleanValue defaultShadow;
         public final ForgeConfigSpec.DoubleValue defaultScale;
         public final ForgeConfigSpec.BooleanValue reducedMotionMode;
@@ -76,9 +64,7 @@ public class TitleFxConfig {
                     .comment("Enable text animations.")
                     .define("enableAnimations", true);
 
-            enableExternalFonts = builder
-                    .comment("Enable loading external fonts (deferred to post-MVP).")
-                    .define("enableExternalFonts", false);
+
 
             defaultShadow = builder
                     .comment("Whether texts should have shadow by default.")

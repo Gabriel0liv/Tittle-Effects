@@ -4,12 +4,22 @@ import java.util.Locale;
 
 public enum IdleAnimationType {
     NONE,
+    SUBTLE_PULSE,
+    BREATHING,
+    SUBTLE_SHAKE,
+    WAVE_SOFT,
+    FLICKER,
+    
+    @Deprecated
     PULSE,
+    @Deprecated
     SHAKE,
+    @Deprecated
     WAVE,
+    @Deprecated
     FLOAT,
-    GRADIENT_SHIFT,
-    FLICKER;
+    @Deprecated
+    GRADIENT_SHIFT;
 
     public static IdleAnimationType fromString(String name) {
         try {

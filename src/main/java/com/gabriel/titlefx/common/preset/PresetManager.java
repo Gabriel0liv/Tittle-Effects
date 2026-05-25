@@ -22,7 +22,7 @@ public class PresetManager {
             presetsDir.mkdirs();
         }
 
-        File defaultFile = new File(presetsDir, "default_presets_v2.json");
+        File defaultFile = new File(presetsDir, "default_presets_v3.json");
         if (!defaultFile.exists()) {
             writeDefaultPresets(defaultFile);
         }
@@ -42,10 +42,10 @@ public class PresetManager {
         File[] files = dir.listFiles((d, name) -> name.endsWith(".json"));
         if (files == null) return;
 
-        // Sort files to ensure default_presets_v2.json loads last and overrides older presets
+        // Sort files to ensure default_presets_v3.json loads last and overrides older presets
         java.util.Arrays.sort(files, (f1, f2) -> {
-            if ("default_presets_v2.json".equals(f1.getName())) return 1;
-            if ("default_presets_v2.json".equals(f2.getName())) return -1;
+            if ("default_presets_v3.json".equals(f1.getName())) return 1;
+            if ("default_presets_v3.json".equals(f2.getName())) return -1;
             return f1.getName().compareTo(f2.getName());
         });
 
@@ -66,33 +66,28 @@ public class PresetManager {
         String defaultJson = "{\n" +
             "  \"boss_intro\": {\n" +
             "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#AA0000\",\n" +
             "    \"gradient\": [\"#FF0000\", \"#550000\"],\n" +
             "    \"duration\": 5000,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"obfuscated_decode\",\n" +
-            "      \"duration\": 1200,\n" +
-            "      \"lockMode\": \"left_to_right\",\n" +
-            "      \"flickerSpeed\": 2\n" +
+            "      \"duration\": 1200\n" +
             "    },\n" +
             "    \"in\": {\n" +
-            "      \"type\": \"zoom_in\",\n" +
-            "      \"duration\": 500,\n" +
-            "      \"easing\": \"ease_out_back\"\n" +
+            "      \"type\": \"cinematic_zoom_in\",\n" +
+            "      \"duration\": 600\n" +
             "    },\n" +
             "    \"idle\": {\n" +
-            "      \"type\": \"shake\",\n" +
-            "      \"intensity\": 1.5\n" +
+            "      \"type\": \"subtle_shake\",\n" +
+            "      \"intensity\": 0.8\n" +
             "    },\n" +
             "    \"out\": {\n" +
-            "      \"type\": \"fade_out\",\n" +
-            "      \"duration\": 500\n" +
+            "      \"type\": \"shrink_fade\",\n" +
+            "      \"duration\": 600\n" +
             "    },\n" +
             "    \"subtitle\": {\n" +
             "      \"type\": \"subtitle\",\n" +
             "      \"text\": \"Prepare-se!\",\n" +
-            "      \"font\": \"minecraft:default\",\n" +
             "      \"color\": \"#FFFFFF\",\n" +
             "      \"reveal\": {\n" +
             "        \"type\": \"typewriter\",\n" +
@@ -103,9 +98,8 @@ public class PresetManager {
             "\n" +
             "  \"quest_start\": {\n" +
             "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FFD56A\",\n" +
-            "    \"duration\": 4000,\n" +
+            "    \"duration\": 3500,\n" +
             "    \"reveal\": {\n" +
             "      \"type\": \"word_by_word\",\n" +
             "      \"duration\": 1000\n" +
@@ -115,8 +109,8 @@ public class PresetManager {
             "      \"duration\": 400\n" +
             "    },\n" +
             "    \"idle\": {\n" +
-            "      \"type\": \"pulse\",\n" +
-            "      \"intensity\": 0.06\n" +
+            "      \"type\": \"breathing\",\n" +
+            "      \"intensity\": 1.0\n" +
             "    },\n" +
             "    \"out\": {\n" +
             "      \"type\": \"fade_out\",\n" +
@@ -124,22 +118,39 @@ public class PresetManager {
             "    }\n" +
             "  },\n" +
             "\n" +
+            "  \"location_intro\": {\n" +
+            "    \"type\": \"title\",\n" +
+            "    \"color\": \"#FFFFFF\",\n" +
+            "    \"duration\": 3000,\n" +
+            "    \"reveal\": {\n" +
+            "      \"type\": \"fade_chars\",\n" +
+            "      \"duration\": 1000\n" +
+            "    },\n" +
+            "    \"in\": {\n" +
+            "      \"type\": \"soft_pop\",\n" +
+            "      \"duration\": 500\n" +
+            "    },\n" +
+            "    \"out\": {\n" +
+            "      \"type\": \"dissolve\",\n" +
+            "      \"duration\": 500\n" +
+            "    }\n" +
+            "  },\n" +
+            "\n" +
             "  \"warning\": {\n" +
             "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FFAA00\",\n" +
             "    \"duration\": 3000,\n" +
             "    \"reveal\": {\n" +
-            "      \"type\": \"typewriter\",\n" +
+            "      \"type\": \"glyph_scramble\",\n" +
             "      \"duration\": 800\n" +
             "    },\n" +
             "    \"in\": {\n" +
-            "      \"type\": \"zoom_in\",\n" +
+            "      \"type\": \"soft_pop\",\n" +
             "      \"duration\": 400\n" +
             "    },\n" +
             "    \"idle\": {\n" +
-            "      \"type\": \"pulse\",\n" +
-            "      \"intensity\": 0.1\n" +
+            "      \"type\": \"flicker\",\n" +
+            "      \"intensity\": 1.0\n" +
             "    },\n" +
             "    \"out\": {\n" +
             "      \"type\": \"fade_out\",\n" +
@@ -149,16 +160,11 @@ public class PresetManager {
             "\n" +
             "  \"system\": {\n" +
             "    \"type\": \"actionbar\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#55AAFF\",\n" +
             "    \"duration\": 2500,\n" +
             "    \"reveal\": {\n" +
-            "      \"type\": \"glyph_scramble\",\n" +
-            "      \"duration\": 900,\n" +
-            "      \"lockMode\": \"random\",\n" +
-            "      \"charset\": \"safe\",\n" +
-            "      \"preserveSpaces\": true,\n" +
-            "      \"preserveCase\": true\n" +
+            "      \"type\": \"typewriter\",\n" +
+            "      \"duration\": 600\n" +
             "    },\n" +
             "    \"in\": {\n" +
             "      \"type\": \"fade_in\",\n" +
@@ -172,134 +178,31 @@ public class PresetManager {
             "\n" +
             "  \"achievement\": {\n" +
             "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
             "    \"color\": \"#FFFF55\",\n" +
             "    \"gradient\": [\"#FFFF55\", \"#FF55FF\"],\n" +
-            "    \"duration\": 4500,\n" +
-            "    \"in\": {\n" +
-            "      \"type\": \"zoom_in\",\n" +
-            "      \"duration\": 600,\n" +
-            "      \"easing\": \"ease_out_back\"\n" +
-            "    },\n" +
-            "    \"idle\": {\n" +
-            "      \"type\": \"pulse\",\n" +
-            "      \"intensity\": 0.05\n" +
-            "    },\n" +
-            "    \"out\": {\n" +
-            "      \"type\": \"fade_out\",\n" +
-            "      \"duration\": 500\n" +
-            "    },\n" +
-            "    \"subtitle\": {\n" +
-            "      \"type\": \"subtitle\",\n" +
-            "      \"font\": \"minecraft:default\",\n" +
-            "      \"color\": \"#55FF55\"\n" +
-            "    }\n" +
-            "  },\n" +
-            "\n" +
-            "  \"location_intro\": {\n" +
-            "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
-            "    \"color\": \"#55FF55\",\n" +
-            "    \"duration\": 5000,\n" +
-            "    \"in\": {\n" +
-            "      \"type\": \"fade_in\",\n" +
-            "      \"duration\": 1000\n" +
-            "    },\n" +
-            "    \"out\": {\n" +
-            "      \"type\": \"fade_out\",\n" +
-            "      \"duration\": 1000\n" +
-            "    },\n" +
-            "    \"subtitle\": {\n" +
-            "      \"type\": \"subtitle\",\n" +
-            "      \"font\": \"minecraft:default\",\n" +
-            "      \"color\": \"#AAAAAA\"\n" +
-            "    }\n" +
-            "  },\n" +
-            "\n" +
-            "  \"danger\": {\n" +
-            "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
-            "    \"color\": \"#FF5555\",\n" +
-            "    \"duration\": 3000,\n" +
-            "    \"reveal\": {\n" +
-            "      \"type\": \"glyph_scramble\",\n" +
-            "      \"duration\": 500\n" +
-            "    },\n" +
-            "    \"in\": {\n" +
-            "      \"type\": \"zoom_in\",\n" +
-            "      \"duration\": 300\n" +
-            "    },\n" +
-            "    \"idle\": {\n" +
-            "      \"type\": \"shake\",\n" +
-            "      \"intensity\": 2.0\n" +
-            "    },\n" +
-            "    \"out\": {\n" +
-            "      \"type\": \"fade_out\",\n" +
-            "      \"duration\": 300\n" +
-            "    }\n" +
-            "  },\n" +
-            "\n" +
-            "  \"success\": {\n" +
-            "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
-            "    \"color\": \"#55FF55\",\n" +
             "    \"duration\": 3500,\n" +
+            "    \"reveal\": {\n" +
+            "      \"type\": \"center_out\",\n" +
+            "      \"duration\": 800\n" +
+            "    },\n" +
             "    \"in\": {\n" +
-            "      \"type\": \"zoom_in\",\n" +
-            "      \"duration\": 400\n" +
+            "      \"type\": \"soft_pop\",\n" +
+            "      \"duration\": 500\n" +
             "    },\n" +
             "    \"idle\": {\n" +
-            "      \"type\": \"pulse\",\n" +
-            "      \"intensity\": 0.08\n" +
+            "      \"type\": \"subtle_pulse\",\n" +
+            "      \"intensity\": 1.0\n" +
             "    },\n" +
             "    \"out\": {\n" +
             "      \"type\": \"fade_out\",\n" +
             "      \"duration\": 400\n" +
-            "    }\n" +
-            "  },\n" +
-            "\n" +
-            "  \"error\": {\n" +
-            "    \"type\": \"title\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
-            "    \"color\": \"#FF5555\",\n" +
-            "    \"duration\": 3500,\n" +
-            "    \"in\": {\n" +
-            "      \"type\": \"zoom_in\",\n" +
-            "      \"duration\": 300\n" +
-            "    },\n" +
-            "    \"idle\": {\n" +
-            "      \"type\": \"shake\",\n" +
-            "      \"intensity\": 1.2\n" +
-            "    },\n" +
-            "    \"out\": {\n" +
-            "      \"type\": \"fade_out\",\n" +
-            "      \"duration\": 300\n" +
-            "    }\n" +
-            "  },\n" +
-            "\n" +
-            "  \"info\": {\n" +
-            "    \"type\": \"actionbar\",\n" +
-            "    \"font\": \"minecraft:default\",\n" +
-            "    \"color\": \"#FFFFCC\",\n" +
-            "    \"duration\": 3000,\n" +
-            "    \"reveal\": {\n" +
-            "      \"type\": \"typewriter\",\n" +
-            "      \"duration\": 500\n" +
-            "    },\n" +
-            "    \"in\": {\n" +
-            "      \"type\": \"fade_in\",\n" +
-            "      \"duration\": 200\n" +
-            "    },\n" +
-            "    \"out\": {\n" +
-            "      \"type\": \"fade_out\",\n" +
-            "      \"duration\": 300\n" +
             "    }\n" +
             "  }\n" +
             "}";
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
             writer.write(defaultJson);
-            TitleFxMod.LOGGER.info("Created default_presets_v2.json file.");
+            TitleFxMod.LOGGER.info("Created default_presets_v3.json file.");
         } catch (IOException e) {
             TitleFxMod.LOGGER.error("Failed to write default presets", e);
         }

@@ -2,7 +2,7 @@ package com.gabriel.titlefx.client.render;
 
 import com.gabriel.titlefx.client.animation.AnimationEngine;
 import com.gabriel.titlefx.client.animation.TextRevealEngine;
-import com.gabriel.titlefx.common.animation.LockMode;
+import com.gabriel.titlefx.common.animation.*;
 import com.gabriel.titlefx.common.model.TextLayerPayload;
 import net.minecraft.client.gui.GuiGraphics;
 
@@ -48,17 +48,25 @@ public class AnimatedTextInstance {
             revealOrder.add(i);
         }
 
-        LockMode mode = layer.reveal().lockMode();
-        if (mode == LockMode.RANDOM) {
-            Collections.shuffle(revealOrder);
-        } else if (mode == LockMode.RIGHT_TO_LEFT) {
-            Collections.reverse(revealOrder);
-        } else if (mode == LockMode.CENTER_OUT) {
+        RevealType revealType = layer.reveal().type();
+        if (revealType == RevealType.CENTER_OUT) {
             final double center = (length - 1) / 2.0;
             revealOrder.sort(Comparator.comparingDouble(i -> Math.abs(i - center)));
-        } else if (mode == LockMode.EDGES_IN) {
-            final double center = (length - 1) / 2.0;
-            revealOrder.sort((a, b) -> Double.compare(Math.abs(b - center), Math.abs(a - center)));
+        } else if (revealType == RevealType.RANDOM_FADE) {
+            Collections.shuffle(revealOrder);
+        } else {
+            LockMode mode = layer.reveal().lockMode();
+            if (mode == LockMode.RANDOM) {
+                Collections.shuffle(revealOrder);
+            } else if (mode == LockMode.RIGHT_TO_LEFT) {
+                Collections.reverse(revealOrder);
+            } else if (mode == LockMode.CENTER_OUT) {
+                final double center = (length - 1) / 2.0;
+                revealOrder.sort(Comparator.comparingDouble(i -> Math.abs(i - center)));
+            } else if (mode == LockMode.EDGES_IN) {
+                final double center = (length - 1) / 2.0;
+                revealOrder.sort((a, b) -> Double.compare(Math.abs(b - center), Math.abs(a - center)));
+            }
         }
     }
 

@@ -42,6 +42,12 @@ public class TextRevealEngine {
             case GLYPH_SCRAMBLE:
                 updateDecodeOrScramble(instance, elapsedMs, t);
                 break;
+            case CENTER_OUT:
+            case WIPE_LEFT_TO_RIGHT:
+            case FADE_CHARS:
+            case RANDOM_FADE:
+                updateFadeStaggered(instance, t);
+                break;
             case NONE:
             default:
                 for (RenderableGlyph glyph : glyphs) {
@@ -247,5 +253,30 @@ public class TextRevealEngine {
         }
         ranges.add(new LineRange(start, text.length()));
         return ranges;
+    }
+
+    private static void updateFadeStaggered(AnimatedTextInstance instance, float t) {
+        List<RenderableGlyph> glyphs = instance.getGlyphs();
+        List<Integer> revealOrder = instance.getRevealOrder();
+        
+        float overlap = 0.5f; // default smooth transition overlap
+        RevealType type = instance.getLayer().reveal().type();
+        if (type == RevealType.WIPE_LEFT_TO_RIGHT) {
+            overlap = 0.2f; // smaller overlap creates a wipe/scroll look
+        }
+        
+        for (int i = 0; i < glyphs.size(); i++) {
+            int index = revealOrder.get(i);
+            RenderableGlyph glyph = glyphs.get(index);
+            
+            float start = (float) i / glyphs.size() * (1.0f - overlap);
+            float end = start + overlap;
+            float charT = 0.0f;
+            if (t > start) {
+                charT = Math.min(1.0f, (t - start) / (end - start));
+            }
+            glyph.visible = (charT > 0.0f);
+            glyph.alpha *= charT;
+        }
     }
 }

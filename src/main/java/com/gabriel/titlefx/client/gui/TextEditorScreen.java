@@ -1,6 +1,5 @@
 package com.gabriel.titlefx.client.gui;
 
-import com.gabriel.titlefx.client.font.ClientFontCache;
 import com.gabriel.titlefx.common.animation.*;
 import com.gabriel.titlefx.common.model.*;
 import net.minecraft.client.gui.GuiGraphics;
@@ -17,7 +16,6 @@ public class TextEditorScreen extends Screen {
 
     // Inputs Left Column
     private EditBox textEdit;
-    private Button fontButton;
     private EditBox colorEdit;
     private EditBox scaleEdit;
     private Button typeButton;
@@ -38,30 +36,26 @@ public class TextEditorScreen extends Screen {
     private Button outEasingButton;
     private EditBox outDurationEdit;
 
-    // State Cycling Lists
-    private final List<String> fontsList = new ArrayList<>();
-    private int fontIndex = 0;
-
     private final String[] types = {"title", "subtitle", "actionbar", "custom"};
     private int typeIndex = 0;
 
     private final String[] alignments = {"center", "left", "right"};
     private int alignIndex = 0;
 
-    private final String[] revealTypes = {"NONE", "TYPEWRITER", "WORD_BY_WORD", "LINE_BY_LINE", "OBFUSCATED_DECODE", "GLYPH_SCRAMBLE"};
+    private final String[] revealTypes = {"NONE", "TYPEWRITER", "WORD_BY_WORD", "GLYPH_SCRAMBLE", "OBFUSCATED_DECODE", "CENTER_OUT", "WIPE_LEFT_TO_RIGHT", "FADE_CHARS", "RANDOM_FADE"};
     private int revealTypeIndex = 0;
 
-    private final String[] inAnimTypes = {"NONE", "FADE_IN", "SLIDE_UP", "SLIDE_DOWN", "SLIDE_LEFT", "SLIDE_RIGHT", "ZOOM_IN", "ZOOM_OUT", "POP_IN"};
+    private final String[] inAnimTypes = {"NONE", "FADE_IN", "CINEMATIC_ZOOM_IN", "SOFT_POP", "SCALE_REVEAL"};
     private int inAnimIndex = 0;
 
-    private final String[] outAnimTypes = {"NONE", "FADE_OUT", "SLIDE_UP_OUT", "SLIDE_DOWN_OUT", "SLIDE_LEFT_OUT", "SLIDE_RIGHT_OUT", "ZOOM_OUT", "POP_OUT"};
+    private final String[] outAnimTypes = {"NONE", "FADE_OUT", "DISSOLVE", "SHRINK_FADE"};
     private int outAnimIndex = 0;
 
     private final String[] easings = {"LINEAR", "EASE_IN", "EASE_OUT", "EASE_IN_OUT", "BOUNCE", "ELASTIC"};
     private int inEasingIndex = 0;
     private int outEasingIndex = 0;
 
-    private final String[] idleAnimTypes = {"NONE", "PULSE", "SHAKE", "WAVE", "FLOAT", "GRADIENT_SHIFT", "FLICKER"};
+    private final String[] idleAnimTypes = {"NONE", "SUBTLE_PULSE", "BREATHING", "SUBTLE_SHAKE", "WAVE_SOFT", "FLICKER"};
     private int idleAnimIndex = 0;
 
     // Status message state
@@ -70,13 +64,6 @@ public class TextEditorScreen extends Screen {
 
     public TextEditorScreen() {
         super(Component.literal("TitleFX Editor"));
-
-        // Populate fonts list
-        fontsList.add("minecraft:default");
-        Collection<String> activeFonts = ClientFontCache.getActiveFonts();
-        if (activeFonts != null) {
-            fontsList.addAll(activeFonts);
-        }
     }
 
     @Override
@@ -96,46 +83,39 @@ public class TextEditorScreen extends Screen {
         textEdit.setValue("Olá TitleFX!");
         this.addRenderableWidget(textEdit);
 
-        // Row 1: Font Cycling
-        fontButton = Button.builder(Component.literal("Fonte: " + fontsList.get(fontIndex)), btn -> {
-            fontIndex = (fontIndex + 1) % fontsList.size();
-            btn.setMessage(Component.literal("Fonte: " + fontsList.get(fontIndex)));
-        }).bounds(lx, panelStartY + 43, 200, 16).build();
-        this.addRenderableWidget(fontButton);
-
-        // Row 2: Color and Scale
-        colorEdit = new EditBox(this.font, lx, panelStartY + 71, 95, 16, Component.literal(""));
+        // Row 1: Color and Scale (shifted up from row 2)
+        colorEdit = new EditBox(this.font, lx, panelStartY + 43, 95, 16, Component.literal(""));
         colorEdit.setValue("#FFFFFF");
         this.addRenderableWidget(colorEdit);
 
-        scaleEdit = new EditBox(this.font, lx + 105, panelStartY + 71, 95, 16, Component.literal(""));
+        scaleEdit = new EditBox(this.font, lx + 105, panelStartY + 43, 95, 16, Component.literal(""));
         scaleEdit.setValue("1.0");
         this.addRenderableWidget(scaleEdit);
 
-        // Row 3: Offsets X and Y
-        xOffsetEdit = new EditBox(this.font, lx, panelStartY + 99, 95, 16, Component.literal(""));
+        // Row 2: Offsets X and Y (shifted up from row 3)
+        xOffsetEdit = new EditBox(this.font, lx, panelStartY + 71, 95, 16, Component.literal(""));
         xOffsetEdit.setValue("0");
         this.addRenderableWidget(xOffsetEdit);
 
-        yOffsetEdit = new EditBox(this.font, lx + 105, panelStartY + 99, 95, 16, Component.literal(""));
+        yOffsetEdit = new EditBox(this.font, lx + 105, panelStartY + 71, 95, 16, Component.literal(""));
         yOffsetEdit.setValue("0");
         this.addRenderableWidget(yOffsetEdit);
 
-        // Row 4: Layer Type and Alignment
+        // Row 3: Layer Type and Alignment (shifted up from row 4)
         typeButton = Button.builder(Component.literal("Tipo: " + types[typeIndex]), btn -> {
             typeIndex = (typeIndex + 1) % types.length;
             btn.setMessage(Component.literal("Tipo: " + types[typeIndex]));
-        }).bounds(lx, panelStartY + 127, 95, 16).build();
+        }).bounds(lx, panelStartY + 99, 95, 16).build();
         this.addRenderableWidget(typeButton);
 
         alignButton = Button.builder(Component.literal("Alinh.: " + alignments[alignIndex]), btn -> {
             alignIndex = (alignIndex + 1) % alignments.length;
             btn.setMessage(Component.literal("Alinh.: " + alignments[alignIndex]));
-        }).bounds(lx + 105, panelStartY + 127, 95, 16).build();
+        }).bounds(lx + 105, panelStartY + 99, 95, 16).build();
         this.addRenderableWidget(alignButton);
 
-        // Row 5: Global Duration
-        durationEdit = new EditBox(this.font, lx, panelStartY + 155, 200, 16, Component.literal(""));
+        // Row 4: Global Duration (shifted up from row 5)
+        durationEdit = new EditBox(this.font, lx, panelStartY + 127, 200, 16, Component.literal(""));
         durationEdit.setValue("3000");
         this.addRenderableWidget(durationEdit);
 
@@ -225,7 +205,7 @@ public class TextEditorScreen extends Screen {
     private AnimatedTextPayload buildPayload() {
         try {
             String text = textEdit.getValue().trim();
-            String fontName = fontsList.get(fontIndex);
+            String fontName = "minecraft:default";
             String color = colorEdit.getValue().trim();
             if (color.isEmpty()) color = "#FFFFFF";
 
@@ -319,7 +299,6 @@ public class TextEditorScreen extends Screen {
     private void copyCommand() {
         try {
             String text = textEdit.getValue().trim();
-            String fontName = fontsList.get(fontIndex);
             String color = colorEdit.getValue().trim();
             String scaleStr = scaleEdit.getValue().trim();
             String xStr = xOffsetEdit.getValue().trim();
@@ -344,7 +323,6 @@ public class TextEditorScreen extends Screen {
 
             StringBuilder cmd = new StringBuilder("/ctitle show @a ");
             cmd.append(activeType).append(" ");
-            cmd.append("font:").append(fontName).append(" ");
             if (!color.isEmpty()) cmd.append("color:").append(color).append(" ");
             cmd.append("scale:").append(scaleStr).append(" ");
             cmd.append("x:").append(xStr).append(" ");
@@ -423,14 +401,13 @@ public class TextEditorScreen extends Screen {
         // Draw Labels - Left Column
         int lx = panelStartX;
         graphics.drawString(this.font, "Texto", lx, panelStartY + 6, 0xA0A0A0);
-        graphics.drawString(this.font, "Fonte", lx, panelStartY + 34, 0xA0A0A0);
-        graphics.drawString(this.font, "Cor (HEX)", lx, panelStartY + 62, 0xA0A0A0);
-        graphics.drawString(this.font, "Escala", lx + 105, panelStartY + 62, 0xA0A0A0);
-        graphics.drawString(this.font, "Desloc. X", lx, panelStartY + 90, 0xA0A0A0);
-        graphics.drawString(this.font, "Desloc. Y", lx + 105, panelStartY + 90, 0xA0A0A0);
-        graphics.drawString(this.font, "Tipo Camada", lx, panelStartY + 118, 0xA0A0A0);
-        graphics.drawString(this.font, "Alinhamento", lx + 105, panelStartY + 118, 0xA0A0A0);
-        graphics.drawString(this.font, "Duração (ms)", lx, panelStartY + 146, 0xA0A0A0);
+        graphics.drawString(this.font, "Cor (HEX)", lx, panelStartY + 34, 0xA0A0A0);
+        graphics.drawString(this.font, "Escala", lx + 105, panelStartY + 34, 0xA0A0A0);
+        graphics.drawString(this.font, "Desloc. X", lx, panelStartY + 62, 0xA0A0A0);
+        graphics.drawString(this.font, "Desloc. Y", lx + 105, panelStartY + 62, 0xA0A0A0);
+        graphics.drawString(this.font, "Tipo Camada", lx, panelStartY + 90, 0xA0A0A0);
+        graphics.drawString(this.font, "Alinhamento", lx + 105, panelStartY + 90, 0xA0A0A0);
+        graphics.drawString(this.font, "Duração (ms)", lx, panelStartY + 118, 0xA0A0A0);
 
         // Draw Labels - Right Column
         int rx = panelStartX + 220;

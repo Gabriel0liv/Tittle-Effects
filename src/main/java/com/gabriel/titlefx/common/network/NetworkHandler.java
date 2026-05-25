@@ -32,23 +32,7 @@ public class NetworkHandler {
             .consumerMainThread(ClearAnimatedTextPacket::handle)
             .add();
 
-        CHANNEL.messageBuilder(FontRegistrySyncPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
-            .encoder(FontRegistrySyncPacket::encode)
-            .decoder(FontRegistrySyncPacket::decode)
-            .consumerMainThread(FontRegistrySyncPacket::handle)
-            .add();
 
-        CHANNEL.messageBuilder(FontRequestPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
-            .encoder(FontRequestPacket::encode)
-            .decoder(FontRequestPacket::decode)
-            .consumerMainThread(FontRequestPacket::handle)
-            .add();
-
-        CHANNEL.messageBuilder(FontChunkPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
-            .encoder(FontChunkPacket::encode)
-            .decoder(FontChunkPacket::decode)
-            .consumerMainThread(FontChunkPacket::handle)
-            .add();
 
         CHANNEL.messageBuilder(OpenEditorPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
             .encoder(OpenEditorPacket::encode)

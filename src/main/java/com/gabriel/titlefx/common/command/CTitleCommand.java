@@ -90,24 +90,7 @@ public class CTitleCommand {
             )
         );
 
-        // /ctitle fonts list/reload/path
-        base.then(Commands.literal("fonts")
-            .then(Commands.literal("list")
-                .requires(src -> {
-                    boolean allowPreview = TitleFxConfig.COMMON.allowPreviewCommand.get();
-                    return allowPreview || src.hasPermission(permLevel);
-                })
-                .executes(CTitleCommand::executeFontsList)
-            )
-            .then(Commands.literal("reload")
-                .requires(src -> src.hasPermission(permLevel))
-                .executes(CTitleCommand::executeFontsReload)
-            )
-            .then(Commands.literal("path")
-                .requires(src -> src.hasPermission(permLevel))
-                .executes(CTitleCommand::executeFontsPath)
-            )
-        );
+
 
         // /ctitle animations list
         base.then(Commands.literal("animations")
@@ -156,8 +139,11 @@ public class CTitleCommand {
             Collection<ServerPlayer> players = EntityArgument.getPlayers(context, "targets");
             String type = StringArgumentType.getString(context, "type");
             String optionsAndText = StringArgumentType.getString(context, "options_and_text");
-
             ParsedCommandData data = parseOptionsAndText(optionsAndText, type);
+
+            if (optionsAndText != null && optionsAndText.contains("font:")) {
+                context.getSource().sendSuccess(() -> Component.literal("§c[TitleFX] Fontes customizadas foram removidas do TitleFX. Usando minecraft:default."), false);
+            }
 
             // Construct payload
             TextLayerPayload layer = new TextLayerPayload(
@@ -270,96 +256,27 @@ public class CTitleCommand {
         }
     }
 
-    private static int executeFontsList(CommandContext<CommandSourceStack> context) {
-        context.getSource().sendSuccess(() -> Component.literal("§6Fontes disponíveis no servidor:"), false);
-        context.getSource().sendSuccess(() -> Component.literal(" - §aminecraft:default§7 (Padrão)"), false);
-        for (String fontId : com.gabriel.titlefx.common.font.ServerFontManager.getRegisteredFontIds()) {
-            context.getSource().sendSuccess(() -> Component.literal(" - §a" + fontId), false);
-        }
-        return 1;
-    }
 
-    private static int executeFontsPath(CommandContext<CommandSourceStack> context) {
-        String path = com.gabriel.titlefx.common.font.ServerFontManager.getFontsDirAbsolutePath();
-        context.getSource().sendSuccess(() -> Component.literal("§6[TitleFX] Caminho de Fontes do Servidor:"), false);
-        context.getSource().sendSuccess(() -> Component.literal("§f" + path), false);
-        return 1;
-    }
-
-    private static int executeFontsReload(CommandContext<CommandSourceStack> context) {
-        com.gabriel.titlefx.common.font.ServerFontManager.ScanResult result = com.gabriel.titlefx.common.font.ServerFontManager.rescan();
-        com.gabriel.titlefx.common.font.ServerFontManager.broadcastSync();
-        
-        // Em singleplayer/integrated server, garante sincronia local enviando diretamente ao executor se for um player
-        try {
-            net.minecraft.server.level.ServerPlayer player = context.getSource().getPlayerOrException();
-            com.gabriel.titlefx.common.font.ServerFontManager.syncFontsToPlayer(player);
-        } catch (Exception ignored) {}
-
-        // Imprime diagnóstico detalhado no chat do jogo
-        context.getSource().sendSuccess(() -> Component.literal("§6=== TitleFX Font Scan ==="), false);
-        context.getSource().sendSuccess(() -> Component.literal("§7Pasta: §f" + result.absolutePath), false);
-        context.getSource().sendSuccess(() -> Component.literal("§7Pasta existe: §f" + (result.directoryExists ? "sim" : "não")), false);
-        context.getSource().sendSuccess(() -> Component.literal("§7Pasta legível: §f" + (result.directoryReadable ? "sim" : "não")), false);
-        context.getSource().sendSuccess(() -> Component.literal("§7Total bruto de itens encontrados: §f" + result.rawFileCount), false);
-        
-        context.getSource().sendSuccess(() -> Component.literal("§7Arquivos encontrados:"), false);
-        if (result.allFilesFound.isEmpty()) {
-            context.getSource().sendSuccess(() -> Component.literal("  - Nenhum"), false);
-        } else {
-            for (String file : result.allFilesFound) {
-                context.getSource().sendSuccess(() -> Component.literal("  - " + file), false);
-            }
-        }
-
-        context.getSource().sendSuccess(() -> Component.literal("§7Candidatos .ttf/.otf:"), false);
-        if (result.candidateFontFiles.isEmpty()) {
-            context.getSource().sendSuccess(() -> Component.literal("  - Nenhum"), false);
-        } else {
-            for (String file : result.candidateFontFiles) {
-                context.getSource().sendSuccess(() -> Component.literal("  - " + file), false);
-            }
-        }
-
-        context.getSource().sendSuccess(() -> Component.literal("§7Registradas:"), false);
-        if (result.registeredFonts.isEmpty()) {
-            context.getSource().sendSuccess(() -> Component.literal("  - Nenhum"), false);
-        } else {
-            for (String fontMap : result.registeredFonts) {
-                context.getSource().sendSuccess(() -> Component.literal("  - " + fontMap), false);
-            }
-        }
-
-        if (!result.rejectedFiles.isEmpty()) {
-            context.getSource().sendSuccess(() -> Component.literal("§cRejeitadas com motivo:"), false);
-            for (Map.Entry<String, String> entry : result.rejectedFiles.entrySet()) {
-                context.getSource().sendSuccess(() -> Component.literal("  - §c" + entry.getKey() + "§7: " + entry.getValue()), false);
-            }
-        } else {
-            context.getSource().sendSuccess(() -> Component.literal("§7Rejeitadas com motivo: §aNenhuma"), false);
-        }
-
-        context.getSource().sendSuccess(() -> Component.literal("§aFontes do servidor recarregadas e sincronizadas com todos os jogadores!"), true);
-        return 1;
-    }
 
     private static int executeAnimationsList(CommandContext<CommandSourceStack> context) {
         context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Reveal:"), false);
         for (RevealType t : RevealType.values()) {
+            if (isDeprecated(t)) continue;
             context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
         }
         context.getSource().sendSuccess(() -> Component.literal("§6Tipos de In Animation:"), false);
         for (InAnimationType t : InAnimationType.values()) {
-            if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
+            if (isDeprecated(t)) continue;
             context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
         }
         context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Idle Animation:"), false);
         for (IdleAnimationType t : IdleAnimationType.values()) {
+            if (isDeprecated(t)) continue;
             context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
         }
         context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Out Animation:"), false);
         for (OutAnimationType t : OutAnimationType.values()) {
-            if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
+            if (isDeprecated(t)) continue;
             context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
         }
         return 1;
@@ -600,7 +517,7 @@ public class CTitleCommand {
         String currentToken = lastSpace == -1 ? input : input.substring(lastSpace + 1);
 
         List<String> optionKeys = Arrays.asList(
-            "font:", "color:", "gradient:", "scale:", "duration:",
+            "color:", "gradient:", "scale:", "duration:",
             "reveal:", "reveal_duration:", "lock_mode:", "flicker_speed:", "charset:",
             "in:", "in_duration:", "in_easing:",
             "idle:", "idle_intensity:",
@@ -627,20 +544,26 @@ public class CTitleCommand {
             List<String> suggestions = new ArrayList<>();
             switch (key) {
                 case "reveal":
-                    for (RevealType t : RevealType.values()) suggestions.add(t.name().toLowerCase());
+                    for (RevealType t : RevealType.values()) {
+                        if (isDeprecated(t)) continue;
+                        suggestions.add(t.name().toLowerCase());
+                    }
                     break;
                 case "in":
                     for (InAnimationType t : InAnimationType.values()) {
-                        if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
+                        if (isDeprecated(t)) continue;
                         suggestions.add(t.name().toLowerCase(Locale.ROOT));
                     }
                     break;
                 case "idle":
-                    for (IdleAnimationType t : IdleAnimationType.values()) suggestions.add(t.name().toLowerCase());
+                    for (IdleAnimationType t : IdleAnimationType.values()) {
+                        if (isDeprecated(t)) continue;
+                        suggestions.add(t.name().toLowerCase());
+                    }
                     break;
                 case "out":
                     for (OutAnimationType t : OutAnimationType.values()) {
-                        if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
+                        if (isDeprecated(t)) continue;
                         suggestions.add(t.name().toLowerCase(Locale.ROOT));
                     }
                     break;
@@ -651,10 +574,6 @@ public class CTitleCommand {
                     break;
                 case "lock_mode":
                     for (LockMode m : LockMode.values()) suggestions.add(m.name().toLowerCase());
-                    break;
-                case "font":
-                    suggestions.add("minecraft:default");
-                    suggestions.addAll(com.gabriel.titlefx.common.font.ServerFontManager.getRegisteredFontIds());
                     break;
                 case "color":
                     suggestions.addAll(Arrays.asList("#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"));
@@ -678,5 +597,13 @@ public class CTitleCommand {
         }
 
         return builder.buildFuture();
+    }
+
+    private static boolean isDeprecated(Enum<?> e) {
+        try {
+            return e.getClass().getField(e.name()).isAnnotationPresent(Deprecated.class);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 }

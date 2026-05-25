@@ -5,6 +5,10 @@ import java.util.Locale;
 public enum InAnimationType {
     NONE,
     FADE_IN,
+    CINEMATIC_ZOOM_IN,
+    SOFT_POP,
+    SCALE_REVEAL,
+    
     @Deprecated
     SLIDE_UP,
     @Deprecated
@@ -13,8 +17,11 @@ public enum InAnimationType {
     SLIDE_LEFT,
     @Deprecated
     SLIDE_RIGHT,
+    @Deprecated
     ZOOM_IN,
+    @Deprecated
     ZOOM_OUT,
+    @Deprecated
     POP_IN;
 
     public static InAnimationType fromString(String name) {

@@ -6,9 +6,15 @@ public enum RevealType {
     NONE,
     TYPEWRITER,
     WORD_BY_WORD,
-    LINE_BY_LINE,
+    GLYPH_SCRAMBLE,
     OBFUSCATED_DECODE,
-    GLYPH_SCRAMBLE;
+    CENTER_OUT,
+    WIPE_LEFT_TO_RIGHT,
+    FADE_CHARS,
+    RANDOM_FADE,
+    
+    @Deprecated
+    LINE_BY_LINE;
 
     public static RevealType fromString(String name) {
         try {
