@@ -14,12 +14,9 @@ public class AdvancedEditorScreen extends Screen {
     private final EditorDraftState draft;
     private TitleFxEditorList list;
 
-    // Status & confirmation state
+    // Status state
     private String statusMsg = "";
     private int statusTimer = 0;
-    private boolean confirmSendAll = false;
-    private int confirmTimer = 0;
-    private Button sendAllBtn;
 
     public AdvancedEditorScreen(TextEditorScreen parent) {
         super(Component.literal("Configurações Avançadas"));
@@ -32,8 +29,7 @@ public class AdvancedEditorScreen extends Screen {
         this.clearWidgets();
         super.init();
 
-        confirmSendAll = false;
-        confirmTimer = 0;
+
 
         int margin = 12;
         int headerH = 24;
@@ -55,49 +51,47 @@ public class AdvancedEditorScreen extends Screen {
         this.addRenderableWidget(list);
 
         // Footer buttons
-        int fBtnW = (listW - 2 * 8) / 3;
+        int fBtnW = (listW - 3 * 8) / 4;
 
         String backLabel = "Voltar";
         Button backBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(backLabel, fBtnW)), btn -> {
             parent.onDraftChanged();
             Minecraft.getInstance().setScreen(parent);
         }).bounds(listX, footerCenterY, fBtnW, 20).build();
+        backBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Volta para o editor simples.")));
         this.addRenderableWidget(backBtn);
 
-        String applyLabel = "Aplicar";
-        Button applyBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(applyLabel, fBtnW)), btn -> {
-            sendEditedText(false);
+        String copySLabel = "Copiar para mim";
+        Button copySBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(copySLabel, fBtnW)), btn -> {
+            Minecraft.getInstance().keyboardHandler.setClipboard(draft.toCommand("@s", true));
+            setStatus("Comando avançado @s copiado.");
         }).bounds(listX + fBtnW + 8, footerCenterY, fBtnW, 20).build();
-        this.addRenderableWidget(applyBtn);
+        copySBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Copia o comando show completo (com opções avançadas) com alvo @s.")));
+        this.addRenderableWidget(copySBtn);
 
-        String sendAllLabel = fBtnW < 75 ? "Todos" : "Enviar (Todos)";
-        sendAllBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(sendAllLabel, listW - 2 * fBtnW - 2 * 8)), btn -> {
-            if (!confirmSendAll) {
-                confirmSendAll = true;
-                confirmTimer = 60; // 3 seconds
-                btn.setMessage(Component.literal(TitleFxEditorList.fitLabel("Confirmar?", listW - 2 * fBtnW - 2 * 8)));
-            } else {
-                sendEditedText(true);
-                confirmSendAll = false;
-                confirmTimer = 0;
-                btn.setMessage(Component.literal(TitleFxEditorList.fitLabel(sendAllLabel, listW - 2 * fBtnW - 2 * 8)));
-            }
-        }).bounds(listX + 2 * (fBtnW + 8), footerCenterY, listW - 2 * fBtnW - 2 * 8, 20).build();
-        this.addRenderableWidget(sendAllBtn);
+        String copyALabel = "Copiar para todos";
+        Button copyABtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(copyALabel, fBtnW)), btn -> {
+            Minecraft.getInstance().keyboardHandler.setClipboard(draft.toCommand("@a", true));
+            setStatus("Comando avançado @a copiado.");
+        }).bounds(listX + 2 * (fBtnW + 8), footerCenterY, fBtnW, 20).build();
+        copyABtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Copia o comando show completo (com opções avançadas) com alvo @a.")));
+        this.addRenderableWidget(copyABtn);
+
+        String resetLabel = "Resetar";
+        int lastBtnW = listW - 3 * fBtnW - 3 * 8;
+        Button resetBtn = Button.builder(Component.literal(TitleFxEditorList.fitLabel(resetLabel, lastBtnW)), btn -> {
+            draft.reset();
+            onDraftChanged();
+            setStatus("Configurações redefinidas.");
+        }).bounds(listX + 3 * (fBtnW + 8), footerCenterY, lastBtnW, 20).build();
+        resetBtn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Redefine todas as opções avançadas e cores para o padrão.")));
+        this.addRenderableWidget(resetBtn);
     }
 
     private void onDraftChanged() {
         if (list != null) {
             list.syncAllEntries(draft);
         }
-    }
-
-    private void sendEditedText(boolean targetAll) {
-        AnimatedTextPayload p = draft.toPayload();
-        com.gabriel.titlefx.common.network.NetworkHandler.CHANNEL.sendToServer(
-            new com.gabriel.titlefx.common.network.SendEditedTextPacket(p, targetAll)
-        );
-        setStatus(targetAll ? "Enviado para todos!" : "Aplicado!");
     }
 
     private void setStatus(String msg) {
@@ -109,18 +103,7 @@ public class AdvancedEditorScreen extends Screen {
     public void tick() {
         super.tick();
         if (statusTimer > 0) statusTimer--;
-
-        if (confirmTimer > 0) {
-            confirmTimer--;
-            if (confirmTimer == 0) {
-                confirmSendAll = false;
-                if (sendAllBtn != null) {
-                    String sendAllLabel = (sendAllBtn.getWidth() < 75) ? "Todos" : "Enviar (Todos)";
-                    sendAllBtn.setMessage(Component.literal(TitleFxEditorList.fitLabel(sendAllLabel, sendAllBtn.getWidth())));
-                }
-            }
-        }
-
+ 
         if (list != null) {
             list.tick();
         }
@@ -136,9 +119,17 @@ public class AdvancedEditorScreen extends Screen {
     public boolean isPauseScreen() { return false; }
 
     @Override
+    public void renderBackground(GuiGraphics g) {
+        // No-op to override vanilla background
+    }
+
+    private void renderEditorBackground(GuiGraphics g) {
+        g.fill(0, 0, this.width, this.height, 0xDD05050A);
+    }
+
+    @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        // Transparent modern dark overlay
-        g.fill(0, 0, this.width, this.height, 0xCC05050A);
+        this.renderEditorBackground(g);
 
         int margin = 12;
         int headerH = 24;
@@ -155,17 +146,19 @@ public class AdvancedEditorScreen extends Screen {
         g.drawCenteredString(this.font, "§bTitleFX §7Configurações Avançadas", this.width / 2, 6, 0xFFFFFF);
 
         // Scrollable List Panel Background
-        g.fill(listX, listY, listX + listW, listY + listH, 0xAA080812);
+        g.fill(listX, listY, listX + listW, listY + listH, 0xAA070711);
         g.fill(listX, listY, listX + listW, listY + 1, 0x44FFFFFF);
 
         // Footer Background
         g.fill(0, footerY, this.width, this.height, 0xEE0C0C1A);
 
-        // Status message
+        // Dica / Status message
         if (statusTimer > 0 && !statusMsg.isEmpty()) {
             float alpha = Math.min(1.0f, statusTimer / 20.0f);
             int color = ((int) (alpha * 0xFF) << 24) | 0x55FF55;
-            g.drawCenteredString(this.font, statusMsg, this.width / 2, footerY - 10, color);
+            g.drawCenteredString(this.font, statusMsg, this.width / 2, footerY - 12, color);
+        } else {
+            g.drawCenteredString(this.font, "§eDica: §7Ajustes avançados geram comandos mais detalhados.", this.width / 2, footerY - 12, 0x80FFFFFF);
         }
 
         super.render(g, mouseX, mouseY, partialTick);

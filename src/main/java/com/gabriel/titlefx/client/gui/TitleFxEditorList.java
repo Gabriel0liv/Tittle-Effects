@@ -80,16 +80,16 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         
         if (listW >= 450) {
             // 3 colunas x 2 linhas
-            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Estilos Preset", new StyleCard[]{allCards[0], allCards[1], allCards[2]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Escolha um estilo", new StyleCard[]{allCards[0], allCards[1], allCards[2]}, onChanged));
             this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[3], allCards[4], allCards[5]}, onChanged));
         } else if (listW >= 300) {
             // 2 colunas x 3 linhas
-            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Estilos Preset", new StyleCard[]{allCards[0], allCards[1]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Escolha um estilo", new StyleCard[]{allCards[0], allCards[1]}, onChanged));
             this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[2], allCards[3]}, onChanged));
             this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[4], allCards[5]}, onChanged));
         } else {
             // 1 coluna x 6 linhas
-            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Estilos Preset", new StyleCard[]{allCards[0]}, onChanged));
+            this.addEntry(new StyleRowEntry(minecraft, draft, "§7Escolha um estilo", new StyleCard[]{allCards[0]}, onChanged));
             this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[1]}, onChanged));
             this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[2]}, onChanged));
             this.addEntry(new StyleRowEntry(minecraft, draft, "", new StyleCard[]{allCards[3]}, onChanged));
@@ -110,26 +110,16 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
     public void rebuildAdvancedEntries(EditorDraftState draft, Runnable onChanged) {
         this.clearEntries();
 
-        // 1. Tipo (always visible in advanced, showing Custom option)
+        // --- APARÊNCIA ---
+        this.addEntry(new SectionHeaderEntry("Aparência"));
+
+        // 1. Tipo
         this.addEntry(new TypeEntry(minecraft, draft, true, onChanged));
 
-        // 2. Duração
-        this.addEntry(new EditBoxEntry(minecraft, "§7Duração Total (ms)", 
-            draft.durationMs <= 0 ? "" : String.valueOf(draft.durationMs),
-            val -> {
-                try {
-                    draft.durationMs = val.trim().isEmpty() ? -1 : Integer.parseInt(val.trim());
-                    onChanged.run();
-                } catch (Exception ignored) {}
-            }
-        ));
-
-        // 3. Cor
-        this.addEntry(new ColorEntry(minecraft, draft, onChanged));
-
-        // 4. Escala
-        this.addEntry(new EditBoxEntry(minecraft, "§7Escala",
+        // 2. Tamanho
+        this.addEntry(new EditBoxEntry(minecraft, "§7Tamanho",
             draft.scale <= 0 ? "" : String.format(java.util.Locale.US, "%.1f", draft.scale),
+            "Tamanho/Escala do texto. Deixe em branco para usar o padrão.",
             val -> {
                 try {
                     draft.scale = val.trim().isEmpty() ? -1f : Float.parseFloat(val.trim());
@@ -138,40 +128,105 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             }
         ));
 
-        // 5. Posição X / Y
+        // 3. Posição
         this.addEntry(new PositionEntry(minecraft, draft, onChanged));
 
-        // 6. Alinhamento
+        // 4. Alinhamento
         this.addEntry(new AlignmentEntry(minecraft, draft, onChanged));
 
-        // 7. Modo Revelação
-        RevealType[] revealTypes = {
+        // 5. Cor
+        this.addEntry(new ColorEntry(minecraft, draft, onChanged));
+
+
+        // --- ANIMAÇÃO ---
+        this.addEntry(new SectionHeaderEntry("Animação"));
+
+        // 6. Como o texto aparece
+        RevealType[] revealTypesClean = {
             RevealType.NONE, RevealType.TYPEWRITER, RevealType.WORD_BY_WORD,
             RevealType.GLYPH_SCRAMBLE, RevealType.OBFUSCATED_DECODE, RevealType.CENTER_OUT,
             RevealType.WIPE_LEFT_TO_RIGHT, RevealType.FADE_CHARS, RevealType.RANDOM_FADE
         };
-        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Modo Revelação", revealTypes,
-            this::getRevealLabel, () -> draft.revealType, val -> {
+        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Como o texto aparece", revealTypesClean,
+            this::getRevealLabel, "Efeito com que as letras se revelam uma a uma.", () -> draft.revealType, val -> {
                 draft.revealType = val;
                 onChanged.run();
             }
         ));
 
-        // 8. Entrada Tipo
+        // 7. Entrada do texto
         InAnimationType[] inTypes = {
             InAnimationType.NONE, InAnimationType.FADE_IN, InAnimationType.CINEMATIC_ZOOM_IN,
             InAnimationType.SOFT_POP, InAnimationType.SCALE_REVEAL
         };
-        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Entrada", inTypes,
-            AnimationNames::of, () -> draft.inAnimation, val -> {
+        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Entrada do texto", inTypes,
+            AnimationNames::of, "Animação de transição quando o texto entra na tela.", () -> draft.inAnimation, val -> {
                 draft.inAnimation = val;
                 onChanged.run();
             }
         ));
 
-        // 9. Entrada Duração
+        // 8. Suavização Entrada
+        Easing[] easings = Easing.values();
+        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Suavização Entrada", easings,
+            this::getEasingLabel, "Suavização do movimento de entrada.", () -> draft.inEasing, val -> {
+                draft.inEasing = val;
+                onChanged.run();
+            }
+        ));
+
+        // 9. Enquanto fica na tela
+        IdleAnimationType[] idleTypes = {
+            IdleAnimationType.NONE, IdleAnimationType.SUBTLE_PULSE, IdleAnimationType.BREATHING,
+            IdleAnimationType.SUBTLE_SHAKE, IdleAnimationType.WAVE_SOFT, IdleAnimationType.FLICKER
+        };
+        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Enquanto fica na tela", idleTypes,
+            AnimationNames::of, "Efeito contínuo aplicado ao texto enquanto está na tela.", () -> draft.idleAnimation, val -> {
+                draft.idleAnimation = val;
+                onChanged.run();
+            }
+        ));
+
+        // 10. Como desaparece
+        OutAnimationType[] outTypes = {
+            OutAnimationType.NONE, OutAnimationType.FADE_OUT, OutAnimationType.DISSOLVE,
+            OutAnimationType.SHRINK_FADE
+        };
+        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Como desaparece", outTypes,
+            AnimationNames::of, "Animação de transição quando o texto some da tela.", () -> draft.outAnimation, val -> {
+                draft.outAnimation = val;
+                onChanged.run();
+            }
+        ));
+
+        // 11. Suavização Saída
+        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Suavização Saída", easings,
+            this::getEasingLabel, "Suavização do movimento de saída.", () -> draft.outEasing, val -> {
+                draft.outEasing = val;
+                onChanged.run();
+            }
+        ));
+
+
+        // --- TEMPO E INTENSIDADE ---
+        this.addEntry(new SectionHeaderEntry("Tempo e intensidade"));
+
+        // 12. Tempo na tela
+        this.addEntry(new EditBoxEntry(minecraft, "§7Tempo na tela", 
+            draft.durationMs <= 0 ? "" : String.valueOf(draft.durationMs),
+            "Tempo total de exibição do texto em milissegundos (ex: 4000).",
+            val -> {
+                try {
+                    draft.durationMs = val.trim().isEmpty() ? -1 : Integer.parseInt(val.trim());
+                    onChanged.run();
+                } catch (Exception ignored) {}
+            }
+        ));
+
+        // 13. Duração da Entrada (ms)
         this.addEntry(new EditBoxEntry(minecraft, "§7Duração da Entrada (ms)",
             String.valueOf(draft.inDuration),
+            "Tempo em milissegundos que a animação de entrada dura.",
             val -> {
                 try {
                     draft.inDuration = Integer.parseInt(val.trim());
@@ -180,53 +235,10 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             }
         ));
 
-        // 10. Entrada Easing
-        Easing[] easings = Easing.values();
-        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Suavização Entrada", easings,
-            Enum::name, () -> draft.inEasing, val -> {
-                draft.inEasing = val;
-                onChanged.run();
-            }
-        ));
-
-        // 11. Ocioso Tipo
-        IdleAnimationType[] idleTypes = {
-            IdleAnimationType.NONE, IdleAnimationType.SUBTLE_PULSE, IdleAnimationType.BREATHING,
-            IdleAnimationType.SUBTLE_SHAKE, IdleAnimationType.WAVE_SOFT, IdleAnimationType.FLICKER
-        };
-        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Animação Ociosa", idleTypes,
-            AnimationNames::of, () -> draft.idleAnimation, val -> {
-                draft.idleAnimation = val;
-                onChanged.run();
-            }
-        ));
-
-        // 12. Ocioso Intensidade
-        this.addEntry(new EditBoxEntry(minecraft, "§7Intensidade Ociosa",
-            String.format(java.util.Locale.US, "%.2f", draft.idleIntensity),
-            val -> {
-                try {
-                    draft.idleIntensity = Float.parseFloat(val.trim());
-                    onChanged.run();
-                } catch (Exception ignored) {}
-            }
-        ));
-
-        // 13. Saída Tipo
-        OutAnimationType[] outTypes = {
-            OutAnimationType.NONE, OutAnimationType.FADE_OUT, OutAnimationType.DISSOLVE,
-            OutAnimationType.SHRINK_FADE
-        };
-        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Saída", outTypes,
-            AnimationNames::of, () -> draft.outAnimation, val -> {
-                draft.outAnimation = val;
-                onChanged.run();
-            }
-        ));
-
-        // 14. Saída Duração
+        // 14. Duração da Saída (ms)
         this.addEntry(new EditBoxEntry(minecraft, "§7Duração da Saída (ms)",
             String.valueOf(draft.outDuration),
+            "Tempo em milissegundos que a animação de saída dura.",
             val -> {
                 try {
                     draft.outDuration = Integer.parseInt(val.trim());
@@ -235,11 +247,15 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             }
         ));
 
-        // 15. Saída Easing
-        this.addEntry(new CycleButtonEntry<>(minecraft, "§7Suavização Saída", easings,
-            Enum::name, () -> draft.outEasing, val -> {
-                draft.outEasing = val;
-                onChanged.run();
+        // 15. Intensidade Ociosa
+        this.addEntry(new EditBoxEntry(minecraft, "§7Intensidade Ociosa",
+            String.format(java.util.Locale.US, "%.2f", draft.idleIntensity),
+            "Intensidade/velocidade da animação ociosa. Padrão é 1.0.",
+            val -> {
+                try {
+                    draft.idleIntensity = Float.parseFloat(val.trim());
+                    onChanged.run();
+                } catch (Exception ignored) {}
             }
         ));
     }
@@ -274,6 +290,19 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             case FADE_CHARS: return "Letras";
             case RANDOM_FADE: return "Aleatório";
             default: return type.name();
+        }
+    }
+
+    private String getEasingLabel(Easing easing) {
+        if (easing == null) return "Linear";
+        switch (easing) {
+            case LINEAR: return "Linear";
+            case EASE_IN: return "Suave no começo";
+            case EASE_OUT: return "Suave no fim";
+            case EASE_IN_OUT: return "Cinemático";
+            case EASE_OUT_BACK: return "Retorno suave";
+            case EASE_OUT_BOUNCE: return "Salto elástico";
+            default: return easing.name();
         }
     }
 
@@ -392,6 +421,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                 draft.text = val;
                 onChanged.run();
             });
+            this.editBox.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Escreva aqui o texto que deseja exibir. Suporta códigos de formatação do Minecraft (ex: §b).")));
         }
 
         @Override
@@ -444,6 +474,13 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         private static final String[] TYPES = { "title", "subtitle", "actionbar", "custom" };
         private static final String[] TYPE_LABELS = { "Título", "Sub", "Barra", "Custom" };
 
+        private static final String[] TYPE_TOOLTIPS = {
+            "Posição principal no centro da tela com fonte grande.",
+            "Subtítulo posicionado logo abaixo do título.",
+            "Texto pequeno posicionado acima da barra de itens (ActionBar).",
+            "Texto com posição e tamanho 100% customizados."
+        };
+
         public TypeEntry(Minecraft mc, EditorDraftState draft, boolean showCustom, Runnable onChanged) {
             this.draft = draft;
             int count = showCustom ? 4 : 3;
@@ -454,6 +491,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                     draft.yOffset = Integer.MIN_VALUE;
                     onChanged.run();
                 }).build();
+                btn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(TYPE_TOOLTIPS[i])));
                 buttons.add(btn);
             }
         }
@@ -509,6 +547,14 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         };
         private static final String[] SPEED_LABELS = { "Inst", "Rápido", "Normal", "Cine", "Lento" };
 
+        private static final String[] SPEED_TOOLTIPS = {
+            "O texto aparece instantaneamente.",
+            "Aparece de forma rápida.",
+            "Aparece na velocidade padrão.",
+            "Aparece com uma velocidade cinematográfica, ideal para títulos marcantes.",
+            "Aparece lentamente."
+        };
+
         public RevealSpeedEntry(Minecraft mc, EditorDraftState draft, Runnable onChanged) {
             this.draft = draft;
             for (int i = 0; i < 5; i++) {
@@ -517,6 +563,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                     draft.revealSpeed = SPEEDS[si];
                     onChanged.run();
                 }).build();
+                btn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(SPEED_TOOLTIPS[i])));
                 buttons.add(btn);
             }
         }
@@ -573,6 +620,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                 draft.color = val;
                 onChanged.run();
             });
+            this.editBox.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("A cor do texto em formato Hexadecimal (ex: #FF5555 para vermelho).")));
         }
 
         @Override
@@ -590,7 +638,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
             int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
-            g.drawString(mc.font, "§7Cor (HEX)", left + 6, labelY, 0xFFFFFF);
+            g.drawString(mc.font, "§7Cor", left + 6, labelY, 0xFFFFFF);
 
             int ctrlY = compact ? (top + 20) : (top + (height - 14) / 2);
             this.editBox.setX(ctrlX);
@@ -622,12 +670,13 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         private final String labelText;
         private final EditBox editBox;
 
-        public EditBoxEntry(Minecraft mc, String labelText, String initialVal, java.util.function.Consumer<String> responder) {
+        public EditBoxEntry(Minecraft mc, String labelText, String initialVal, String tooltipText, java.util.function.Consumer<String> responder) {
             this.labelText = labelText;
             this.editBox = new EditBox(mc.font, 0, 0, 100, 14, Component.literal(""));
             this.editBox.setValue(initialVal);
             this.editBox.setMaxLength(16);
             this.editBox.setResponder(responder);
+            this.editBox.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(tooltipText)));
         }
 
         @Override
@@ -680,6 +729,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                     onChanged.run();
                 } catch (Exception ignored) {}
             });
+            this.xEdit.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Deslocamento horizontal em pixels (positivo = direita, negativo = esquerda).")));
 
             this.yEdit = new EditBox(mc.font, 0, 0, 50, 14, Component.literal(""));
             this.yEdit.setValue(draft.yOffset == Integer.MIN_VALUE ? "" : String.valueOf(draft.yOffset));
@@ -694,6 +744,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                     onChanged.run();
                 } catch (Exception ignored) {}
             });
+            this.yEdit.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Deslocamento vertical em pixels (deixe vazio para usar a posição padrão do tipo).")));
         }
 
         @Override
@@ -713,7 +764,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             int inputW = (ctrlW - 12) / 2;
 
             int labelY = compact ? (top + 4) : (top + (height - 9) / 2);
-            g.drawString(mc.font, "§7Posição X / Y", left + 6, labelY, 0xFFFFFF);
+            g.drawString(mc.font, "§7Posição", left + 6, labelY, 0xFFFFFF);
 
             int ctrlY = compact ? (top + 20) : (top + (height - 14) / 2);
             this.xEdit.setX(ctrlX);
@@ -750,6 +801,12 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         private static final String[] ALIGNMENTS = { "center", "left", "right" };
         private static final String[] ALIGN_LABELS = { "Centro", "Esq", "Dir" };
 
+        private static final String[] ALIGN_TOOLTIPS = {
+            "Alinha o texto centralizado na posição.",
+            "Alinha o texto à esquerda da posição.",
+            "Alinha o texto à direita da posição."
+        };
+
         public AlignmentEntry(Minecraft mc, EditorDraftState draft, Runnable onChanged) {
             this.draft = draft;
             for (int i = 0; i < 3; i++) {
@@ -758,6 +815,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                     draft.alignment = ALIGNMENTS[ai];
                     onChanged.run();
                 }).build();
+                btn.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(ALIGN_TOOLTIPS[i])));
                 buttons.add(btn);
             }
         }
@@ -811,7 +869,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         private final java.util.function.Consumer<T> valSetter;
         private final java.util.function.Supplier<T> valGetter;
 
-        public CycleButtonEntry(Minecraft mc, String labelText, T[] values, java.util.function.Function<T, String> nameMapper, java.util.function.Supplier<T> valGetter, java.util.function.Consumer<T> valSetter) {
+        public CycleButtonEntry(Minecraft mc, String labelText, T[] values, java.util.function.Function<T, String> nameMapper, String tooltipText, java.util.function.Supplier<T> valGetter, java.util.function.Consumer<T> valSetter) {
             this.labelText = labelText;
             this.values = values;
             this.nameMapper = nameMapper;
@@ -830,6 +888,7 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
                 T next = values[(idx + 1) % values.length];
                 valSetter.accept(next);
             }).build();
+            this.button.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(tooltipText)));
         }
 
         @Override
@@ -868,5 +927,27 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         }
     }
 
+    public static class SectionHeaderEntry extends Entry {
+        private final String title;
 
+        public SectionHeaderEntry(String title) {
+            this.title = title;
+        }
+
+        @Override
+        public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
+            Minecraft mc = Minecraft.getInstance();
+            g.drawString(mc.font, "§b§l" + title, left + 6, top + (height - 9) / 2, 0xFFFFFF);
+        }
+
+        @Override
+        public List<? extends GuiEventListener> children() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public List<? extends NarratableEntry> narratables() {
+            return Collections.emptyList();
+        }
+    }
 }

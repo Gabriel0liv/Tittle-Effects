@@ -40,11 +40,7 @@ public class NetworkHandler {
             .consumerMainThread(OpenEditorPacket::handle)
             .add();
 
-        CHANNEL.messageBuilder(SendEditedTextPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
-            .encoder(SendEditedTextPacket::encode)
-            .decoder(SendEditedTextPacket::decode)
-            .consumerMainThread(SendEditedTextPacket::handle)
-            .add();
+
     }
 
     public static void sendToPlayer(ServerPlayer player, Object msg) {

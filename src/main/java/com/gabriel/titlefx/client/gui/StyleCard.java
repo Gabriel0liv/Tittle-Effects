@@ -8,7 +8,7 @@ import com.gabriel.titlefx.common.animation.*;
  */
 public enum StyleCard {
 
-    BOSS_CINEMATICO("Boss Cinemático", 0xFF5A1010, "Impacto dramático com zoom cinemático e decodificação") {
+    BOSS_CINEMATICO("Boss Cinemático", 0xFF5A1010, "Estilo impactante para bosses, eventos e combates importantes.") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#AA0000";
@@ -23,7 +23,7 @@ public enum StyleCard {
         }
     },
 
-    MISSAO("Missão", 0xFF4A3010, "Aparecimento suave por palavras com pulsação suave") {
+    MISSAO("Missão", 0xFF4A3010, "Estilo suave para iniciar quests ou objetivos.") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFD56A";
@@ -38,7 +38,7 @@ public enum StyleCard {
         }
     },
 
-    LOCALIZACAO("Localização", 0xFF1A3A1A, "Revelação cinematográfica caractere a caractere") {
+    LOCALIZACAO("Localização", 0xFF1A3A1A, "Mostra nomes de áreas, cidades ou regiões.") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFFFFF";
@@ -53,7 +53,7 @@ public enum StyleCard {
         }
     },
 
-    AVISO("Aviso", 0xFF4A2A00, "Texto instável com embaralhamento e piscar de alerta") {
+    AVISO("Aviso", 0xFF4A2A00, "Chama atenção para perigo, alerta ou evento urgente.") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFAA00";
@@ -68,7 +68,7 @@ public enum StyleCard {
         }
     },
 
-    SISTEMA("Sistema", 0xFF0A2040, "Mensagem rápida do sistema com digitação de terminal") {
+    SISTEMA("Sistema", 0xFF0A2040, "Mensagem simples e rápida, ideal para actionbar.") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "actionbar";
             d.color       = "#55AAFF";
@@ -83,7 +83,7 @@ public enum StyleCard {
         }
     },
 
-    ACHIEVEMENT("Achievement", 0xFF303010, "Conquista dourada com surgimento centralizado e pulso") {
+    ACHIEVEMENT("Achievement", 0xFF303010, "Estilo de conquista ou recompensa.") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFFF55";

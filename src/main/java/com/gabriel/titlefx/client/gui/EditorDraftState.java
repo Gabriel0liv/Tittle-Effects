@@ -206,36 +206,42 @@ public class EditorDraftState {
      * Omits scale, x, y, duration, alignment, speed if they match type defaults.
      */
     public String toCommand() {
-        StringBuilder cmd = new StringBuilder("/ctitle show @a ").append(type).append(" ");
+        return toCommand("@s", false);
+    }
+
+    public String toCommand(String target, boolean includeAdvanced) {
+        StringBuilder cmd = new StringBuilder("/ctitle show ").append(target).append(" ").append(type).append(" ");
 
         // Color — only if differs from default #FFFFFF
         if (color != null && !color.isEmpty() && !"#FFFFFF".equalsIgnoreCase(color)) {
             cmd.append("color:").append(color).append(" ");
         }
 
-        // Scale — only if differs from type default
-        float defScale = TextDefaults.getDefaultScale(type);
-        if (scale > 0 && Math.abs(scale - defScale) > 0.01f) {
-            cmd.append("scale:").append(String.format("%.1f", scale)).append(" ");
-        }
+        if (includeAdvanced) {
+            // Scale — only if differs from type default
+            float defScale = TextDefaults.getDefaultScale(type);
+            if (scale > 0 && Math.abs(scale - defScale) > 0.01f) {
+                cmd.append("scale:").append(String.format(java.util.Locale.US, "%.1f", scale)).append(" ");
+            }
 
-        // X — only if non-zero
-        if (xOffset != 0) cmd.append("x:").append(xOffset).append(" ");
+            // X — only if non-zero
+            if (xOffset != 0) cmd.append("x:").append(xOffset).append(" ");
 
-        // Y — only if differs from type default
-        int defY      = TextDefaults.getDefaultPosition(type).y();
-        int resolvedY = yOffset != Integer.MIN_VALUE ? yOffset : defY;
-        if (resolvedY != defY) cmd.append("y:").append(resolvedY).append(" ");
+            // Y — only if differs from type default
+            int defY      = TextDefaults.getDefaultPosition(type).y();
+            int resolvedY = yOffset != Integer.MIN_VALUE ? yOffset : defY;
+            if (resolvedY != defY) cmd.append("y:").append(resolvedY).append(" ");
 
-        // Alignment — only if not center
-        if (!"center".equalsIgnoreCase(alignment)) {
-            cmd.append("align:").append(alignment).append(" ");
-        }
+            // Alignment — only if not center
+            if (!"center".equalsIgnoreCase(alignment)) {
+                cmd.append("align:").append(alignment).append(" ");
+            }
 
-        // Duration — only if differs from type default
-        int defDur = TextDefaults.getDefaultDuration(type);
-        if (durationMs > 0 && durationMs != defDur) {
-            cmd.append("duration:").append(durationMs).append(" ");
+            // Duration — only if differs from type default
+            int defDur = TextDefaults.getDefaultDuration(type);
+            if (durationMs > 0 && durationMs != defDur) {
+                cmd.append("duration:").append(durationMs).append(" ");
+            }
         }
 
         // Reveal
@@ -249,8 +255,10 @@ public class EditorDraftState {
         // In animation
         if (inAnimation != null && inAnimation != InAnimationType.NONE) {
             cmd.append("in:").append(inAnimation.name().toLowerCase()).append(" ");
-            if (inDuration != 500) cmd.append("in_duration:").append(inDuration).append(" ");
-            if (inEasing != null && inEasing != Easing.LINEAR) {
+            if (includeAdvanced && inDuration != 500) {
+                cmd.append("in_duration:").append(inDuration).append(" ");
+            }
+            if (includeAdvanced && inEasing != null && inEasing != Easing.LINEAR) {
                 cmd.append("in_easing:").append(inEasing.name().toLowerCase()).append(" ");
             }
         }
@@ -258,7 +266,7 @@ public class EditorDraftState {
         // Idle animation
         if (idleAnimation != null && idleAnimation != IdleAnimationType.NONE) {
             cmd.append("idle:").append(idleAnimation.name().toLowerCase()).append(" ");
-            if (Math.abs(idleIntensity - 1.0f) > 0.01f) {
+            if (includeAdvanced && Math.abs(idleIntensity - 1.0f) > 0.01f) {
                 cmd.append("idle_intensity:").append(idleIntensity).append(" ");
             }
         }
@@ -266,8 +274,10 @@ public class EditorDraftState {
         // Out animation
         if (outAnimation != null && outAnimation != OutAnimationType.NONE) {
             cmd.append("out:").append(outAnimation.name().toLowerCase()).append(" ");
-            if (outDuration != 500) cmd.append("out_duration:").append(outDuration).append(" ");
-            if (outEasing != null && outEasing != Easing.LINEAR) {
+            if (includeAdvanced && outDuration != 500) {
+                cmd.append("out_duration:").append(outDuration).append(" ");
+            }
+            if (includeAdvanced && outEasing != null && outEasing != Easing.LINEAR) {
                 cmd.append("out_easing:").append(outEasing.name().toLowerCase()).append(" ");
             }
         }
