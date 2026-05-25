@@ -393,7 +393,7 @@ public class CTitleCommand {
         public int revealDuration = 1000;
         public LockMode lockMode = LockMode.LEFT_TO_RIGHT;
         public int flickerSpeed = 2;
-        public String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        public String charset = "safe";
         public boolean preserveSpaces = true;
         public boolean preserveCase = true;
 

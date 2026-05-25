@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ClientFontCache {
-    private static final File CACHE_DIR = new File("titlefx/font_cache");
+    private static final File CACHE_DIR = new File(net.minecraft.client.Minecraft.getInstance().gameDirectory, "titlefx/font_cache");
     private static final File ACTIVE_PACK_DIR = new File(CACHE_DIR, "active/generated_pack");
     
     private static String currentRegistryHash = "";
@@ -27,6 +27,53 @@ public class ClientFontCache {
     private static ByteArrayOutputStream activeDownloadBuffer = null;
     private static int activeDownloadExpectedChunks = 0;
     private static int activeDownloadReceivedChunks = 0;
+
+    private static final Set<String> activeFonts = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static int retryCount = 0;
+
+    static {
+        rebuildActiveFontsList();
+    }
+
+    public static void rebuildActiveFontsList() {
+        activeFonts.clear();
+        File fontDir = new File(ACTIVE_PACK_DIR, "assets/titlefx/font");
+        if (fontDir.exists() && fontDir.isDirectory()) {
+            File[] files = fontDir.listFiles((dir, name) -> name.endsWith(".json"));
+            if (files != null) {
+                for (File f : files) {
+                    String name = f.getName();
+                    String baseName = name.substring(0, name.lastIndexOf('.'));
+                    activeFonts.add("titlefx:" + baseName);
+                }
+            }
+        }
+    }
+
+    public static boolean isFontAvailable(String fontId) {
+        if (fontId == null || fontId.trim().isEmpty() || "minecraft:default".equals(fontId)) {
+            return true;
+        }
+        return activeFonts.contains(fontId);
+    }
+
+    private static void retryActiveFont() {
+        if (activeDownload == null) return;
+        if (retryCount >= 3) {
+            TitleFxMod.LOGGER.error("Failed to download font " + activeDownload.fontId() + " after 3 attempts. Skipping.");
+            requestNextFont();
+            return;
+        }
+        retryCount++;
+        activeTransferId = UUID.randomUUID().toString();
+        activeDownloadBuffer = new ByteArrayOutputStream();
+        activeDownloadExpectedChunks = 0;
+        activeDownloadReceivedChunks = 0;
+
+        TitleFxMod.LOGGER.info("Retrying font download: " + activeDownload.fontId() + " (" + activeDownload.originalName() + "). Attempt: " + retryCount);
+        FontRequestPacket req = new FontRequestPacket(activeDownload.fontId(), activeTransferId, activeDownload.sha256());
+        NetworkHandler.CHANNEL.sendToServer(req);
+    }
 
     public static synchronized void handleRegistrySync(String registryHash, String serverHash, List<FontInfo> fonts) {
         TitleFxMod.LOGGER.info("Received FontRegistrySyncPacket. Registry Hash: " + registryHash + ", Server Hash: " + serverHash);
@@ -157,6 +204,7 @@ public class ClientFontCache {
         activeDownloadBuffer = new ByteArrayOutputStream();
         activeDownloadExpectedChunks = 0;
         activeDownloadReceivedChunks = 0;
+        retryCount = 0;
 
         TitleFxMod.LOGGER.info("Requesting font: " + activeDownload.fontId() + " (" + activeDownload.originalName() + ")");
         FontRequestPacket req = new FontRequestPacket(activeDownload.fontId(), activeTransferId, activeDownload.sha256());
@@ -171,7 +219,7 @@ public class ClientFontCache {
 
         if (chunkIndex != activeDownloadReceivedChunks) {
             TitleFxMod.LOGGER.warn("Received out-of-order chunk " + chunkIndex + ", expected: " + activeDownloadReceivedChunks + ". Restarting download.");
-            requestNextFont();
+            retryActiveFont();
             return;
         }
 
@@ -195,7 +243,7 @@ public class ClientFontCache {
 
                 if (!assembledSha.equals(activeDownload.sha256())) {
                     TitleFxMod.LOGGER.error("Checksum mismatch for downloaded font: " + fontId + ". Retrying...");
-                    requestNextFont();
+                    retryActiveFont();
                     return;
                 }
 
@@ -204,7 +252,7 @@ public class ClientFontCache {
             }
         } catch (IOException e) {
             TitleFxMod.LOGGER.error("Error writing chunk bytes", e);
-            requestNextFont();
+            retryActiveFont();
         }
     }
 
@@ -291,6 +339,7 @@ public class ClientFontCache {
         ACTIVE_PACK_DIR.mkdirs();
         copyDirectory(serverPackDir, ACTIVE_PACK_DIR);
         TitleFxMod.LOGGER.info("Mirrored resource pack to active directory.");
+        rebuildActiveFontsList();
     }
 
     private static void triggerResourceReload() {
@@ -302,7 +351,8 @@ public class ClientFontCache {
     }
 
     private static String getFontFileName(FontInfo info) {
-        String ext = info.originalName().endsWith(".otf") ? ".otf" : ".ttf";
+        String lowerName = info.originalName().toLowerCase(Locale.ROOT);
+        String ext = lowerName.endsWith(".otf") ? ".otf" : ".ttf";
         return info.fontId().replace("titlefx:", "") + ext;
     }
 

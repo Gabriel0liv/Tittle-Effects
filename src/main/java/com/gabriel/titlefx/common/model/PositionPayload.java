@@ -9,14 +9,7 @@ public record PositionPayload(
     String alignment
 ) {
     public static PositionPayload defaultForType(String type) {
-        if ("subtitle".equalsIgnoreCase(type)) {
-            return new PositionPayload("center", 0, -10, "center");
-        } else if ("actionbar".equalsIgnoreCase(type)) {
-            return new PositionPayload("bottom", 0, -60, "center");
-        } else {
-            // title and default
-            return new PositionPayload("center", 0, -40, "center");
-        }
+        return TextDefaults.getDefaultPosition(type);
     }
 
     public void write(FriendlyByteBuf buf) {

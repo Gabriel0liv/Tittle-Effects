@@ -9,6 +9,9 @@ public class ClientFontManager {
         if (fontId == null || fontId.trim().isEmpty() || "minecraft:default".equals(fontId)) {
             return DEFAULT_FONT;
         }
+        if (!ClientFontCache.isFontAvailable(fontId)) {
+            return DEFAULT_FONT;
+        }
         try {
             if (!fontId.contains(":")) {
                 return new ResourceLocation("titlefx", fontId);

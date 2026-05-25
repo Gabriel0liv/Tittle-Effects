@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerFontManager {
-    private static final File FONTS_DIR = new File("config/titlefx/fonts");
+    private static final File FONTS_DIR = net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get().resolve("titlefx/fonts").toFile();
     private static final Map<String, FontInfo> FONTS = new ConcurrentHashMap<>();
     private static final Map<String, File> FONT_FILES = new ConcurrentHashMap<>();
     private static String registryHash = "";
@@ -62,6 +62,11 @@ public class ServerFontManager {
                 String fontId = "titlefx:" + nameWithoutExtension;
                 String sha256 = computeSHA256(file);
                 long sizeBytes = file.length();
+                long maxAllowedSize = (long) com.gabriel.titlefx.common.config.TitleFxConfig.COMMON.maxFontFileSizeMb.get() * 1024 * 1024;
+                if (sizeBytes > maxAllowedSize) {
+                    TitleFxMod.LOGGER.warn("Skipping font " + fileName + " because it exceeds the maximum size limit of " + (maxAllowedSize / 1024 / 1024) + "MB.");
+                    continue;
+                }
 
                 if (sha256.isEmpty()) {
                     TitleFxMod.LOGGER.error("Failed to calculate SHA-256 for: " + fileName);
