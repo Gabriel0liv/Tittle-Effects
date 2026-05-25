@@ -35,7 +35,7 @@ public class TextEditorScreen extends Screen {
         // Preview buttons
         int btnW = (l.previewW() - 2 * 8) / 3;
         Button reproBtn = Button.builder(Component.literal("▶ Reproduzir"), btn -> {
-            previewRenderer.play(draft);
+            previewRenderer.play(draft, l.previewW());
             setStatus("Preview reproduzido!");
         }).bounds(l.previewX(), l.previewButtonsY(), btnW, 20).build();
         this.addRenderableWidget(reproBtn);
@@ -51,7 +51,8 @@ public class TextEditorScreen extends Screen {
         this.addRenderableWidget(applyBtn);
 
         // Scrollable option list
-        list = new TitleFxEditorList(this.minecraft, l.listW(), l.listH(), l.listY(), l.listY() + l.listH(), 24);
+        int itemHeight = l.listW() < 420 ? 36 : 24;
+        list = new TitleFxEditorList(this.minecraft, l.listW(), l.listH(), l.listY(), l.listY() + l.listH(), itemHeight);
         list.setLeftPos(l.listX());
         list.rebuildMainEntries(draft, l.compact(), l.listW(), this::onDraftChanged);
         this.addRenderableWidget(list);
@@ -81,7 +82,8 @@ public class TextEditorScreen extends Screen {
             list.syncAllEntries(draft);
         }
         // Auto-preview
-        previewRenderer.play(draft);
+        EditorLayout l = EditorLayout.calculate(this.width, this.height);
+        previewRenderer.play(draft, l.previewW());
     }
 
     private void sendEditedText(boolean targetAll) {

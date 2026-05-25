@@ -21,6 +21,35 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         super(minecraft, width, height, top, bottom, itemHeight);
     }
 
+    public static String fitLabel(String text, int maxWidth) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.font.width(text) <= maxWidth) {
+            return text;
+        }
+        String suffix = "...";
+        int suffixW = mc.font.width(suffix);
+        if (maxWidth <= suffixW) {
+            return "";
+        }
+        int low = 0;
+        int high = text.length();
+        int best = 0;
+        while (low <= high) {
+            int mid = (low + high) / 2;
+            if (mid > 0 && mid < text.length() && text.charAt(mid - 1) == '§') {
+                mid--;
+            }
+            String part = text.substring(0, mid) + suffix;
+            if (mc.font.width(part) <= maxWidth) {
+                best = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return text.substring(0, best) + suffix;
+    }
+
     public void rebuildMainEntries(EditorDraftState draft, boolean compact, int listW, Runnable onChanged) {
         this.clearEntries();
         
@@ -61,8 +90,6 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
             this.addEntry(new ColorEntry(minecraft, draft, onChanged));
         }
 
-        // 6. MoreOptionsEntry
-        this.addEntry(new MoreOptionsEntry(minecraft, onChanged));
     }
 
     public void rebuildAdvancedEntries(EditorDraftState draft, Runnable onChanged) {
@@ -281,28 +308,35 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, labelText, left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
+
+            if (!labelText.isEmpty()) {
+                int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+                g.drawString(mc.font, labelText, left + 6, labelY, 0xFFFFFF);
+            }
 
             int count = buttons.size();
             if (count == 0) return;
 
             int btnW = (ctrlW - (count - 1) * 4) / count;
+            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
 
             for (int i = 0; i < count; i++) {
                 Button btn = buttons.get(i);
                 btn.setX(ctrlX + i * (btnW + 4));
-                btn.setY(top + (height - 18) / 2);
+                btn.setY(btnY);
                 btn.setWidth(btnW);
                 btn.setHeight(18);
 
                 StyleCard card = cards[i];
                 boolean sel = card.name().equals(draft.selectedStyleCard);
                 String cardLabel = getShortCardLabel(card, width < 450);
-                btn.setMessage(Component.literal(sel ? "► " + cardLabel : cardLabel));
+                String labelText = sel ? "► " + cardLabel : cardLabel;
+                btn.setMessage(Component.literal(fitLabel(labelText, btnW)));
                 btn.render(g, mouseX, mouseY, partialTick);
             }
         }
@@ -353,14 +387,18 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, "§7Texto", left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, "§7Texto", left + 6, labelY, 0xFFFFFF);
+
+            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
             this.editBox.setX(ctrlX);
-            this.editBox.setY(top + (height - 14) / 2);
+            this.editBox.setY(ctrlY);
             this.editBox.setWidth(ctrlW);
             this.editBox.setHeight(14);
             this.editBox.render(g, mouseX, mouseY, partialTick);
@@ -408,25 +446,30 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, "§7Tipo", left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
+
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, "§7Tipo", left + 6, labelY, 0xFFFFFF);
 
             int count = buttons.size();
             int btnW = (ctrlW - (count - 1) * 4) / count;
+            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
 
             for (int i = 0; i < count; i++) {
                 Button btn = buttons.get(i);
                 btn.setX(ctrlX + i * (btnW + 4));
-                btn.setY(top + (height - 18) / 2);
+                btn.setY(btnY);
                 btn.setWidth(btnW);
                 btn.setHeight(18);
 
                 boolean sel = TYPES[i].equalsIgnoreCase(draft.type);
                 String label = TYPE_LABELS[i];
-                btn.setMessage(Component.literal(sel ? "► " + label : label));
+                String labelText = sel ? "► " + label : label;
+                btn.setMessage(Component.literal(fitLabel(labelText, btnW)));
                 btn.render(g, mouseX, mouseY, partialTick);
             }
         }
@@ -466,24 +509,29 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, "§7Velocidade", left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
+
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, "§7Velocidade", left + 6, labelY, 0xFFFFFF);
 
             int btnW = (ctrlW - 4 * 4) / 5;
+            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
 
             for (int i = 0; i < 5; i++) {
                 Button btn = buttons.get(i);
                 btn.setX(ctrlX + i * (btnW + 4));
-                btn.setY(top + (height - 18) / 2);
+                btn.setY(btnY);
                 btn.setWidth(btnW);
                 btn.setHeight(18);
 
                 boolean sel = SPEEDS[i] == draft.revealSpeed;
                 String label = SPEED_LABELS[i];
-                btn.setMessage(Component.literal(sel ? "► " + label : label));
+                String labelText = sel ? "► " + label : label;
+                btn.setMessage(Component.literal(fitLabel(labelText, btnW)));
                 btn.render(g, mouseX, mouseY, partialTick);
             }
         }
@@ -520,14 +568,18 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, "§7Cor (HEX)", left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, "§7Cor (HEX)", left + 6, labelY, 0xFFFFFF);
+
+            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
             this.editBox.setX(ctrlX);
-            this.editBox.setY(top + (height - 14) / 2);
+            this.editBox.setY(ctrlY);
             this.editBox.setWidth(ctrlW);
             this.editBox.setHeight(14);
             this.editBox.render(g, mouseX, mouseY, partialTick);
@@ -571,14 +623,18 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, labelText, left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, labelText, left + 6, labelY, 0xFFFFFF);
+
+            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
             this.editBox.setX(ctrlX);
-            this.editBox.setY(top + (height - 14) / 2);
+            this.editBox.setY(ctrlY);
             this.editBox.setWidth(ctrlW);
             this.editBox.setHeight(14);
             this.editBox.render(g, mouseX, mouseY, partialTick);
@@ -634,23 +690,28 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, "§7Posição X / Y", left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
             int inputW = (ctrlW - 12) / 2;
 
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, "§7Posição X / Y", left + 6, labelY, 0xFFFFFF);
+
+            int ctrlY = compact ? (top + 16) : (top + (height - 14) / 2);
             this.xEdit.setX(ctrlX);
-            this.xEdit.setY(top + (height - 14) / 2);
+            this.xEdit.setY(ctrlY);
             this.xEdit.setWidth(inputW);
             this.xEdit.setHeight(14);
             this.xEdit.render(g, mouseX, mouseY, partialTick);
 
-            g.drawString(mc.font, ",", ctrlX + inputW + 4, top + (height - 9) / 2, 0x80FFFFFF);
+            int commaY = compact ? (top + 18) : (top + (height - 9) / 2);
+            g.drawString(mc.font, ",", ctrlX + inputW + 4, commaY, 0x80FFFFFF);
 
             this.yEdit.setX(ctrlX + inputW + 8);
-            this.yEdit.setY(top + (height - 14) / 2);
+            this.yEdit.setY(ctrlY);
             this.yEdit.setWidth(inputW);
             this.yEdit.setHeight(14);
             this.yEdit.render(g, mouseX, mouseY, partialTick);
@@ -689,24 +750,29 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, "§7Alinhamento", left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
+
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, "§7Alinhamento", left + 6, labelY, 0xFFFFFF);
 
             int btnW = (ctrlW - 2 * 4) / 3;
+            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
 
             for (int i = 0; i < 3; i++) {
                 Button btn = buttons.get(i);
                 btn.setX(ctrlX + i * (btnW + 4));
-                btn.setY(top + (height - 18) / 2);
+                btn.setY(btnY);
                 btn.setWidth(btnW);
                 btn.setHeight(18);
 
                 boolean sel = ALIGNMENTS[i].equalsIgnoreCase(draft.alignment);
                 String label = ALIGN_LABELS[i];
-                btn.setMessage(Component.literal(sel ? "► " + label : label));
+                String labelText = sel ? "► " + label : label;
+                btn.setMessage(Component.literal(fitLabel(labelText, btnW)));
                 btn.render(g, mouseX, mouseY, partialTick);
             }
         }
@@ -754,20 +820,24 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         @Override
         public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
             Minecraft mc = Minecraft.getInstance();
-            g.drawString(mc.font, labelText, left + 6, top + (height - 9) / 2, 0xFFFFFF);
+            boolean compact = width < 420;
 
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
+            int labelW = compact ? 0 : Math.min(130, (int) (width * 0.32));
+            int ctrlX = compact ? (left + 6) : (left + labelW + 10);
+            int ctrlW = compact ? (width - 12) : (width - labelW - 20);
 
+            int labelY = compact ? (top + 2) : (top + (height - 9) / 2);
+            g.drawString(mc.font, labelText, left + 6, labelY, 0xFFFFFF);
+
+            int btnY = compact ? (top + 15) : (top + (height - 18) / 2);
             this.button.setX(ctrlX);
-            this.button.setY(top + (height - 18) / 2);
+            this.button.setY(btnY);
             this.button.setWidth(ctrlW);
             this.button.setHeight(18);
 
             T current = valGetter.get();
             String name = nameMapper.apply(current);
-            this.button.setMessage(Component.literal(name));
+            this.button.setMessage(Component.literal(fitLabel(name, ctrlW)));
 
             this.button.render(g, mouseX, mouseY, partialTick);
         }
@@ -783,36 +853,5 @@ public class TitleFxEditorList extends ContainerObjectSelectionList<TitleFxEdito
         }
     }
 
-    public static class MoreOptionsEntry extends Entry {
-        private final Button button;
 
-        public MoreOptionsEntry(Minecraft mc, Runnable onChanged) {
-            this.button = Button.builder(Component.literal("Configurações Avançadas..."), b -> {
-                Minecraft.getInstance().setScreen(new AdvancedEditorScreen((TextEditorScreen) Minecraft.getInstance().screen));
-            }).build();
-        }
-
-        @Override
-        public void render(GuiGraphics g, int index, int top, int left, int width, int height, int mouseX, int mouseY, boolean isMouseOver, float partialTick) {
-            int labelW = (int) (width * 0.4);
-            int ctrlX = left + labelW + 10;
-            int ctrlW = width - labelW - 20;
-
-            this.button.setX(ctrlX);
-            this.button.setY(top + (height - 18) / 2);
-            this.button.setWidth(ctrlW);
-            this.button.setHeight(18);
-            this.button.render(g, mouseX, mouseY, partialTick);
-        }
-
-        @Override
-        public List<? extends GuiEventListener> children() {
-            return Collections.singletonList(button);
-        }
-
-        @Override
-        public List<? extends NarratableEntry> narratables() {
-            return Collections.singletonList(button);
-        }
-    }
 }

@@ -14,7 +14,7 @@ public class EditorPreviewRenderer {
     private boolean playing = false;
 
     /** Cria nova instância e inicia animação a partir de agora. */
-    public void play(EditorDraftState draft) {
+    public void play(EditorDraftState draft, int pvW) {
         if (draft == null) return;
         AnimatedTextPayload payload = draft.toPayload();
         if (payload.layers().isEmpty()) return;
@@ -22,9 +22,6 @@ public class EditorPreviewRenderer {
 
         float textWidth = Minecraft.getInstance().font.width(layer.text());
         if (textWidth <= 0) textWidth = 1.0f;
-
-        // Calculate preview width dynamically based on scaled screen width
-        int pvW = Minecraft.getInstance().getWindow().getGuiScaledWidth() - 24;
 
         float maxScaleByWidth = (pvW * 0.75f) / textWidth;
         float originalScale = draft.effectiveScale();

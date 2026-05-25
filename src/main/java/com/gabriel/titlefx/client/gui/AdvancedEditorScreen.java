@@ -48,7 +48,8 @@ public class AdvancedEditorScreen extends Screen {
         int footerCenterY = footerY + (footerH - 20) / 2;
 
         // Scrollable list
-        list = new TitleFxEditorList(this.minecraft, listW, listH, listY, listY + listH, 24);
+        int itemHeight = listW < 420 ? 36 : 24;
+        list = new TitleFxEditorList(this.minecraft, listW, listH, listY, listY + listH, itemHeight);
         list.setLeftPos(listX);
         list.rebuildAdvancedEntries(draft, this::onDraftChanged);
         this.addRenderableWidget(list);
