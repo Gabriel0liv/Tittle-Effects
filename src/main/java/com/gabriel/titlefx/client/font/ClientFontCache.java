@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ClientFontCache {
-    private static final File CACHE_DIR = new File(net.minecraft.client.Minecraft.getInstance().gameDirectory, "titlefx/font_cache");
+    private static final File CACHE_DIR = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().resolve("titlefx/font_cache").toFile();
     private static final File ACTIVE_PACK_DIR = new File(CACHE_DIR, "active/generated_pack");
     
     private static String currentRegistryHash = "";
@@ -57,6 +57,10 @@ public class ClientFontCache {
         return activeFonts.contains(fontId);
     }
 
+    public static Collection<String> getActiveFonts() {
+        return activeFonts;
+    }
+
     private static void retryActiveFont() {
         if (activeDownload == null) return;
         if (retryCount >= 3) {
@@ -75,8 +79,29 @@ public class ClientFontCache {
         NetworkHandler.CHANNEL.sendToServer(req);
     }
 
+    public static String getClientCalculatedServerHash() {
+        Minecraft mc = Minecraft.getInstance();
+        String address = "local_server";
+        if (!mc.isLocalServer() && mc.getCurrentServer() != null && mc.getCurrentServer().ip != null) {
+            address = mc.getCurrentServer().ip;
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(address.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return "default_server";
+        }
+    }
+
     public static synchronized void handleRegistrySync(String registryHash, String serverHash, List<FontInfo> fonts) {
-        TitleFxMod.LOGGER.info("Received FontRegistrySyncPacket. Registry Hash: " + registryHash + ", Server Hash: " + serverHash);
+        String resolvedServerHash = getClientCalculatedServerHash();
+        serverHash = resolvedServerHash;
+        TitleFxMod.LOGGER.info("Received FontRegistrySyncPacket. Registry Hash: " + registryHash + ", Resolved Server Hash: " + resolvedServerHash);
         
         // Validate total registry synchronization size limit
         long totalRegistryBytes = 0;
@@ -89,8 +114,8 @@ public class ClientFontCache {
             return;
         }
 
-        currentServerHash = serverHash;
-        File serverPackDir = new File(CACHE_DIR, serverHash + "/generated_pack");
+        currentServerHash = resolvedServerHash;
+        File serverPackDir = new File(CACHE_DIR, resolvedServerHash + "/generated_pack");
         
         // 1. Check if registry hash matches and active pack is already complete
         if (currentRegistryHash.equals(registryHash) && isPackComplete(fonts)) {
@@ -363,9 +388,7 @@ public class ClientFontCache {
     }
 
     private static String getFontFileName(FontInfo info) {
-        String lowerName = info.originalName().toLowerCase(Locale.ROOT);
-        String ext = lowerName.endsWith(".otf") ? ".otf" : ".ttf";
-        return info.fontId().replace("titlefx:", "") + ext;
+        return info.fontId().replace("titlefx:", "") + info.extension();
     }
 
     private static void deleteDirectory(File dir) {

@@ -49,6 +49,18 @@ public class NetworkHandler {
             .decoder(FontChunkPacket::decode)
             .consumerMainThread(FontChunkPacket::handle)
             .add();
+
+        CHANNEL.messageBuilder(OpenEditorPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(OpenEditorPacket::encode)
+            .decoder(OpenEditorPacket::decode)
+            .consumerMainThread(OpenEditorPacket::handle)
+            .add();
+
+        CHANNEL.messageBuilder(SendEditedTextPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(SendEditedTextPacket::encode)
+            .decoder(SendEditedTextPacket::decode)
+            .consumerMainThread(SendEditedTextPacket::handle)
+            .add();
     }
 
     public static void sendToPlayer(ServerPlayer player, Object msg) {

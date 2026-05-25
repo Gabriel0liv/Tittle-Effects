@@ -162,6 +162,15 @@ public class CTitleCommand {
             .executes(CTitleCommand::executeReload)
         );
 
+        // /ctitle editor
+        base.then(Commands.literal("editor")
+            .requires(src -> {
+                boolean allowPreview = TitleFxConfig.COMMON.allowPreviewCommand.get();
+                return allowPreview || src.hasPermission(permLevel);
+            })
+            .executes(CTitleCommand::executeEditor)
+        );
+
         dispatcher.register(base);
     }
 
@@ -379,6 +388,17 @@ public class CTitleCommand {
         PresetManager.init();
         context.getSource().sendSuccess(() -> Component.literal("§aConfiguração e presets do TitleFX recarregados com sucesso!"), true);
         return 1;
+    }
+
+    private static int executeEditor(CommandContext<CommandSourceStack> context) {
+        try {
+            ServerPlayer player = context.getSource().getPlayerOrException();
+            NetworkHandler.sendToPlayer(player, new com.gabriel.titlefx.common.network.OpenEditorPacket());
+            return 1;
+        } catch (Exception e) {
+            context.getSource().sendFailure(Component.literal("§cApenas jogadores podem abrir a interface do editor."));
+            return 0;
+        }
     }
 
     public static class ParsedCommandData {

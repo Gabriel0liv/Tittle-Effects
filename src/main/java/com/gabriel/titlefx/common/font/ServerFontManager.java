@@ -55,6 +55,7 @@ public class ServerFontManager {
                 if (dotIdx == -1) continue;
 
                 String nameWithoutExtension = fileName.substring(0, dotIdx).toLowerCase(Locale.ROOT);
+                String extension = fileName.substring(dotIdx).toLowerCase(Locale.ROOT);
                 // Sanitization
                 nameWithoutExtension = nameWithoutExtension.replaceAll("[\\s]+", "_");
                 nameWithoutExtension = nameWithoutExtension.replaceAll("[^a-z0-9_\\-]", "");
@@ -73,7 +74,7 @@ public class ServerFontManager {
                     continue;
                 }
 
-                FontInfo info = new FontInfo(fontId, fileName, sizeBytes, sha256);
+                FontInfo info = new FontInfo(fontId, fileName, extension, sizeBytes, sha256);
                 FONTS.put(fontId, info);
                 FONT_FILES.put(fontId, file);
                 TitleFxMod.LOGGER.info("Registered server font: " + fontId + " (" + fileName + ")");

@@ -29,4 +29,10 @@ public class ClientPacketHandler {
             packet.getData()
         );
     }
+
+    public static void handleOpenEditor() {
+        net.minecraft.client.Minecraft.getInstance().execute(() -> {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new com.gabriel.titlefx.client.gui.TextEditorScreen());
+        });
+    }
 }
