@@ -76,7 +76,7 @@ public class FontRequestPacket {
                 return;
             }
 
-            int chunkSize = 32768; // 32KB
+            int chunkSize = TitleFxConfig.COMMON.fontChunkSizeKb.get() * 1024;
             long fileSize = file.length();
             int totalChunks = (int) Math.ceil((double) fileSize / chunkSize);
             if (totalChunks <= 0) {

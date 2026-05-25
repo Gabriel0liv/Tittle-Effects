@@ -223,10 +223,11 @@ public class ClientFontCache {
             return;
         }
 
-        // Limit validation: max allowed file size (let's say 32MB hardcoded client limit)
+        // Limit validation: max allowed file size (from config)
         long currentBytes = activeDownloadBuffer.size();
-        if (currentBytes + data.length > 32 * 1024 * 1024) {
-            TitleFxMod.LOGGER.error("Font transfer exceeded client size limit of 32MB.");
+        long maxLimitBytes = (long) com.gabriel.titlefx.common.config.TitleFxConfig.COMMON.maxTotalFontSyncMb.get() * 1024 * 1024;
+        if (currentBytes + data.length > maxLimitBytes) {
+            TitleFxMod.LOGGER.error("Font transfer exceeded client sync size limit of " + (maxLimitBytes / 1024 / 1024) + "MB.");
             activeDownload = null;
             return;
         }

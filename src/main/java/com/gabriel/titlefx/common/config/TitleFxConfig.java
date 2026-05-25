@@ -25,6 +25,8 @@ public class TitleFxConfig {
         public final ForgeConfigSpec.BooleanValue allowPreviewCommand;
         public final ForgeConfigSpec.IntValue maxMessageLength;
         public final ForgeConfigSpec.IntValue maxFontFileSizeMb;
+        public final ForgeConfigSpec.IntValue fontChunkSizeKb;
+        public final ForgeConfigSpec.IntValue maxTotalFontSyncMb;
 
         public Common(ForgeConfigSpec.Builder builder) {
             builder.push("general");
@@ -44,6 +46,14 @@ public class TitleFxConfig {
             maxFontFileSizeMb = builder
                     .comment("Maximum allowed font file size in Megabytes for sync.")
                     .defineInRange("maxFontFileSizeMb", 16, 1, 128);
+
+            fontChunkSizeKb = builder
+                    .comment("Size of font sync chunks in Kilobytes.")
+                    .defineInRange("fontChunkSizeKb", 32, 4, 256);
+
+            maxTotalFontSyncMb = builder
+                    .comment("Maximum allowed accumulated fonts sync size in Megabytes.")
+                    .defineInRange("maxTotalFontSyncMb", 64, 4, 1024);
 
             builder.pop();
         }
