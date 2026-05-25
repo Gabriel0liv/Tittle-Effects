@@ -40,20 +40,20 @@ public class TextEditorScreen extends Screen {
     // ===================================================================
     // Layout constants
     // ===================================================================
-    private static final int W       = 556; // panel width
-    private static final int PAD     = 8;   // outer padding
-    private static final int GAP     = 6;   // inter-widget gap
+    private static final int W       = 580; // panel width
+    private static final int PAD     = 12;  // outer padding
+    private static final int GAP     = 8;   // inter-widget gap
     private static final int HDR_H   = 20;  // header height
-    private static final int TOP_H   = 92;  // style-cards + preview section height
-    private static final int ROW_H   = 20;  // height of one form row (8-label + 12-widget)
-    private static final int WID_H   = 12;  // height of interactive widgets
-    private static final int FORM_W  = W - 2 * PAD;        // 540
-    private static final int HALF_W  = (FORM_W - GAP) / 2; // 267
+    private static final int TOP_H   = 230; // style-cards + preview section height
+    private static final int ROW_H   = 32;  // height of one form row (8-label + 22-widget + 2 spacing)
+    private static final int WID_H   = 22;  // height of interactive widgets
+    private static final int FORM_W  = W - 2 * PAD;        // 556
+    private static final int HALF_W  = (FORM_W - GAP) / 2; // 274
     private static final int CARD_W  = 128;
-    private static final int CARD_H  = 11;
-    private static final int CARD_GAP = 2;
+    private static final int CARD_H  = 28;
+    private static final int CARD_GAP = 4;
     // X offset where preview zone starts (relative to panel-left+PAD)
-    private static final int PREV_X_OFF = CARD_W + PAD + GAP; // 142
+    private static final int PREV_X_OFF = CARD_W + GAP; // 136
 
     // ===================================================================
     // Enum cycling arrays  (non-deprecated values only)
@@ -91,6 +91,20 @@ public class TextEditorScreen extends Screen {
     private boolean          advancedMode = false;
     private String           statusMsg    = "";
     private int              statusTimer  = 0;
+
+    private final EditorPreviewRenderer previewRenderer = new EditorPreviewRenderer();
+    private long lastEditMs = 0;
+    private boolean previewDirty = false;
+
+    private String lastTextVal = "";
+    private String lastColorVal = "";
+    private String lastDurationVal = "";
+    private String lastScaleVal = "";
+    private String lastXVal = "";
+    private String lastYVal = "";
+    private String lastInDurVal = "";
+    private String lastOutDurVal = "";
+    private String lastIdleIntVal = "";
 
     // ===================================================================
     // Widgets — simple mode
@@ -143,17 +157,17 @@ public class TextEditorScreen extends Screen {
         final int formTopY, toggleY, advTopY, footerY;
 
         Layout(int sw, int sh, boolean adv) {
-            int advExtra = adv ? (3 * ROW_H + 4) : 0;
+            int advExtra = adv ? (5 * ROW_H + 4) : 0;
             panelH = HDR_H + TOP_H + 2 + 4    // header + top-section + sep + gap
-                   + 6 * ROW_H                  // 6 simple form rows
-                   + 4 + 12 + 4                  // gap + toggle btn + gap
+                   + 4 * ROW_H                  // 4 simple form rows (0 to 3)
+                   + 4 + WID_H + 4               // gap + toggle btn + gap
                    + advExtra                    // optional advanced rows
-                   + 4 + 20;                     // gap + footer (16 btn + 4 pad)
+                   + 4 + 20 + 4;                 // gap + footer (16 btn + 4 pad)
             px = (sw - W) / 2;
             py = (sh - panelH) / 2;
             formTopY = py + HDR_H + TOP_H + 2 + 4;
-            toggleY  = formTopY + 6 * ROW_H + 4;
-            advTopY  = toggleY + 12 + 4;
+            toggleY  = formTopY + 4 * ROW_H + 4;
+            advTopY  = toggleY + WID_H + 4;
             footerY  = advTopY + advExtra + 4;
         }
 
@@ -199,9 +213,12 @@ public class TextEditorScreen extends Screen {
                     syncEditboxesToDraft();
                     card.apply(draft);
                     draft.selectedStyleCard = card.name();
+                    markDirtyImmediate();
                     this.init();
                 }
-            ).bounds(l.px + PAD, cardY, CARD_W, CARD_H).build();
+            ).bounds(l.px + PAD, cardY, CARD_W, CARD_H)
+             .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(card.getDescription())))
+             .build();
             this.addRenderableWidget(cardBtns[i]);
         }
 
@@ -209,18 +226,30 @@ public class TextEditorScreen extends Screen {
         // PREVIEW ACTION BUTTONS (bottom of top section, right column)
         // ---------------------------------------------------------------
         int pvX    = l.px + PAD + PREV_X_OFF;
-        int pvW    = W - PAD - PREV_X_OFF - PAD; // ~398
-        int pvBtnY = l.py + HDR_H + TOP_H - WID_H - 2;
-        int pvHalf = (pvW - GAP) / 2;
+        int pvW    = W - PAD - PREV_X_OFF - PAD; // ~420
+        int pvBtnY = l.py + HDR_H + TOP_H - WID_H - 4;
+        int btnW   = (pvW - 2 * GAP) / 3;
 
         Button reproBtn = Button.builder(
-            Component.literal("▶ Reproduzir"), btn -> previewLocally()
-        ).bounds(pvX, pvBtnY, pvHalf, WID_H).build();
+            Component.literal("▶ Reproduzir"), btn -> {
+                syncEditboxesToDraft();
+                previewRenderer.play(draft);
+                setStatus("Preview reproduzido!");
+            }
+        ).bounds(pvX, pvBtnY, btnW, WID_H).build();
         this.addRenderableWidget(reproBtn);
+
+        Button stopBtn = Button.builder(
+            Component.literal("■ Parar"), btn -> {
+                previewRenderer.stop();
+                setStatus("Preview parado.");
+            }
+        ).bounds(pvX + btnW + GAP, pvBtnY, btnW, WID_H).build();
+        this.addRenderableWidget(stopBtn);
 
         Button applyBtn = Button.builder(
             Component.literal("↩ Aplicar"), btn -> sendEditedText(false)
-        ).bounds(pvX + pvHalf + GAP, pvBtnY, pvW - pvHalf - GAP, WID_H).build();
+        ).bounds(pvX + 2 * (btnW + GAP), pvBtnY, pvW - 2 * btnW - 2 * GAP, WID_H).build();
         this.addRenderableWidget(applyBtn);
 
         // ---------------------------------------------------------------
@@ -230,11 +259,12 @@ public class TextEditorScreen extends Screen {
         textEdit.setValue(draft.text != null ? draft.text : "");
         textEdit.setMaxLength(256);
         this.addRenderableWidget(textEdit);
+        lastTextVal = textEdit.getValue();
 
         // ---------------------------------------------------------------
         // ROW 1 — Type selector (4 toggle buttons)
         // ---------------------------------------------------------------
-        int typeW = (FORM_W - 3 * GAP) / 4; // 130 px each
+        int typeW = (FORM_W - 3 * GAP) / 4; // 133 px each
         for (int i = 0; i < 4; i++) {
             final int ti = i;
             boolean sel = TYPES[i].equalsIgnoreCase(draft.type);
@@ -244,6 +274,7 @@ public class TextEditorScreen extends Screen {
                     syncEditboxesToDraft();
                     draft.type    = TYPES[ti];
                     draft.yOffset = Integer.MIN_VALUE; // reset Y to type default
+                    markDirtyImmediate();
                     this.init();
                 }
             ).bounds(fx + i * (typeW + GAP), l.wY(1), typeW, WID_H).build();
@@ -259,6 +290,7 @@ public class TextEditorScreen extends Screen {
                 int idx = (indexOf(REVEAL_TYPES, draft.revealType) + 1) % REVEAL_TYPES.length;
                 draft.revealType = REVEAL_TYPES[idx];
                 btn.setMessage(Component.literal(AnimationNames.of(draft.revealType)));
+                markDirtyImmediate();
             }
         ).bounds(fx, l.wY(2), HALF_W, WID_H).build();
         this.addRenderableWidget(revealBtn);
@@ -269,61 +301,22 @@ public class TextEditorScreen extends Screen {
                 int idx = (indexOf(REVEAL_SPEEDS, draft.revealSpeed) + 1) % REVEAL_SPEEDS.length;
                 draft.revealSpeed = REVEAL_SPEEDS[idx];
                 btn.setMessage(Component.literal(AnimationNames.of(draft.revealSpeed)));
+                markDirtyImmediate();
             }
         ).bounds(fx + HALF_W + GAP, l.wY(2), HALF_W, WID_H).build();
         this.addRenderableWidget(revealSpeedBtn);
 
         // ---------------------------------------------------------------
-        // ROW 3 — In animation (full width)
+        // ROW 3 — Color
         // ---------------------------------------------------------------
-        inAnimBtn = Button.builder(
-            Component.literal(AnimationNames.of(draft.inAnimation)),
-            btn -> {
-                int idx = (indexOf(IN_TYPES, draft.inAnimation) + 1) % IN_TYPES.length;
-                draft.inAnimation = IN_TYPES[idx];
-                btn.setMessage(Component.literal(AnimationNames.of(draft.inAnimation)));
-            }
-        ).bounds(fx, l.wY(3), FORM_W, WID_H).build();
-        this.addRenderableWidget(inAnimBtn);
-
-        // ---------------------------------------------------------------
-        // ROW 4 — Idle + Out (split)
-        // ---------------------------------------------------------------
-        idleBtn = Button.builder(
-            Component.literal(AnimationNames.of(draft.idleAnimation)),
-            btn -> {
-                int idx = (indexOf(IDLE_TYPES, draft.idleAnimation) + 1) % IDLE_TYPES.length;
-                draft.idleAnimation = IDLE_TYPES[idx];
-                btn.setMessage(Component.literal(AnimationNames.of(draft.idleAnimation)));
-            }
-        ).bounds(fx, l.wY(4), HALF_W, WID_H).build();
-        this.addRenderableWidget(idleBtn);
-
-        outBtn = Button.builder(
-            Component.literal(AnimationNames.of(draft.outAnimation)),
-            btn -> {
-                int idx = (indexOf(OUT_TYPES, draft.outAnimation) + 1) % OUT_TYPES.length;
-                draft.outAnimation = OUT_TYPES[idx];
-                btn.setMessage(Component.literal(AnimationNames.of(draft.outAnimation)));
-            }
-        ).bounds(fx + HALF_W + GAP, l.wY(4), HALF_W, WID_H).build();
-        this.addRenderableWidget(outBtn);
-
-        // ---------------------------------------------------------------
-        // ROW 5 — Color + Duration
-        // ---------------------------------------------------------------
-        colorEdit = new EditBox(this.font, fx, l.wY(5), 180, WID_H, Component.literal(""));
+        colorEdit = new EditBox(this.font, fx, l.wY(3), HALF_W, WID_H, Component.literal(""));
         colorEdit.setValue(draft.color != null ? draft.color : "#FFFFFF");
         colorEdit.setMaxLength(32);
         this.addRenderableWidget(colorEdit);
-
-        durationEdit = new EditBox(this.font, fx + 180 + GAP, l.wY(5), 110, WID_H, Component.literal(""));
-        durationEdit.setValue(String.valueOf(draft.effectiveDuration()));
-        durationEdit.setMaxLength(10);
-        this.addRenderableWidget(durationEdit);
+        lastColorVal = colorEdit.getValue();
 
         // ---------------------------------------------------------------
-        // ROW 6 — Advanced toggle
+        // Advanced toggle
         // ---------------------------------------------------------------
         advToggleBtn = Button.builder(
             Component.literal(advancedMode ? "Ocultar avançado ▲" : "Mostrar avançado ▼"),
@@ -333,47 +326,38 @@ public class TextEditorScreen extends Screen {
                 draft.advancedMode = advancedMode;
                 this.init();
             }
-        ).bounds(fx + FORM_W / 2 - 90, l.toggleY, 180, 12).build();
+        ).bounds(fx + FORM_W / 2 - 90, l.toggleY, 180, 16).build();
         this.addRenderableWidget(advToggleBtn);
 
         // ---------------------------------------------------------------
-        // ADVANCED ROW A0 — Scale, X, Y, Alignment
+        // ADVANCED ROW 4 — Duration total
         // ---------------------------------------------------------------
-        // Positions:  72 + GAP + 72 + GAP + 72 + GAP + rest = 540
-        // rest = 540 - 72 - GAP - 72 - GAP - 72 - GAP = 540 - 234 = 306
-        scaleEdit = new EditBox(this.font, fx, l.awY(0), 72, WID_H, Component.literal(""));
-        scaleEdit.setValue(String.format("%.1f", draft.effectiveScale()));
-        scaleEdit.setMaxLength(6);
-        markAdv(scaleEdit);
+        durationEdit = new EditBox(this.font, fx, l.awY(0), HALF_W, WID_H, Component.literal(""));
+        durationEdit.setValue(String.valueOf(draft.effectiveDuration()));
+        durationEdit.setMaxLength(10);
+        markAdv(durationEdit);
+        lastDurationVal = durationEdit.getValue();
 
-        xEdit = new EditBox(this.font, fx + 78, l.awY(0), 72, WID_H, Component.literal(""));
-        xEdit.setValue(String.valueOf(draft.xOffset));
-        xEdit.setMaxLength(6);
-        markAdv(xEdit);
-
-        yEdit = new EditBox(this.font, fx + 156, l.awY(0), 72, WID_H, Component.literal(""));
-        yEdit.setValue(String.valueOf(draft.effectiveY()));
-        yEdit.setMaxLength(6);
-        markAdv(yEdit);
-
-        alignBtn = Button.builder(
-            Component.literal("Alinh.: " + draft.alignment),
+        // ---------------------------------------------------------------
+        // ADVANCED ROW 5 — In animation (In + Dur + Easing)
+        // ---------------------------------------------------------------
+        int qW = (HALF_W - GAP) / 2;
+        inAnimBtn = Button.builder(
+            Component.literal(AnimationNames.of(draft.inAnimation)),
             btn -> {
-                int idx = (indexOf(ALIGNMENTS, draft.alignment) + 1) % ALIGNMENTS.length;
-                draft.alignment = ALIGNMENTS[idx];
-                btn.setMessage(Component.literal("Alinh.: " + draft.alignment));
+                int idx = (indexOf(IN_TYPES, draft.inAnimation) + 1) % IN_TYPES.length;
+                draft.inAnimation = IN_TYPES[idx];
+                btn.setMessage(Component.literal(AnimationNames.of(draft.inAnimation)));
+                markDirtyImmediate();
             }
-        ).bounds(fx + 234, l.awY(0), 306, WID_H).build();
-        markAdv(alignBtn);
+        ).bounds(fx, l.awY(1), HALF_W, WID_H).build();
+        markAdv(inAnimBtn);
 
-        // ---------------------------------------------------------------
-        // ADVANCED ROW A1 — In dur, In easing, Out dur, Out easing
-        // ---------------------------------------------------------------
-        // 72 + GAP + 148 + GAP + 72 + GAP + 230 = 540
-        inDurEdit = new EditBox(this.font, fx, l.awY(1), 72, WID_H, Component.literal(""));
+        inDurEdit = new EditBox(this.font, fx + HALF_W + GAP, l.awY(1), qW, WID_H, Component.literal(""));
         inDurEdit.setValue(String.valueOf(draft.inDuration));
         inDurEdit.setMaxLength(6);
         markAdv(inDurEdit);
+        lastInDurVal = inDurEdit.getValue();
 
         inEasingBtn = Button.builder(
             Component.literal(draft.inEasing != null ? draft.inEasing.name() : "LINEAR"),
@@ -381,14 +365,50 @@ public class TextEditorScreen extends Screen {
                 int idx = (indexOf(EASINGS, draft.inEasing) + 1) % EASINGS.length;
                 draft.inEasing = EASINGS[idx];
                 btn.setMessage(Component.literal(draft.inEasing.name()));
+                markDirtyImmediate();
             }
-        ).bounds(fx + 78, l.awY(1), 148, WID_H).build();
+        ).bounds(fx + HALF_W + GAP + qW + GAP, l.awY(1), qW, WID_H).build();
         markAdv(inEasingBtn);
 
-        outDurEdit = new EditBox(this.font, fx + 232, l.awY(1), 72, WID_H, Component.literal(""));
+        // ---------------------------------------------------------------
+        // ADVANCED ROW 6 — Idle (Idle + Intensity)
+        // ---------------------------------------------------------------
+        idleBtn = Button.builder(
+            Component.literal(AnimationNames.of(draft.idleAnimation)),
+            btn -> {
+                int idx = (indexOf(IDLE_TYPES, draft.idleAnimation) + 1) % IDLE_TYPES.length;
+                draft.idleAnimation = IDLE_TYPES[idx];
+                btn.setMessage(Component.literal(AnimationNames.of(draft.idleAnimation)));
+                markDirtyImmediate();
+            }
+        ).bounds(fx, l.awY(2), HALF_W, WID_H).build();
+        markAdv(idleBtn);
+
+        idleIntEdit = new EditBox(this.font, fx + HALF_W + GAP, l.awY(2), HALF_W, WID_H, Component.literal(""));
+        idleIntEdit.setValue(String.format("%.2f", draft.idleIntensity));
+        idleIntEdit.setMaxLength(6);
+        markAdv(idleIntEdit);
+        lastIdleIntVal = idleIntEdit.getValue();
+
+        // ---------------------------------------------------------------
+        // ADVANCED ROW 7 — Out (Out + Dur + Easing)
+        // ---------------------------------------------------------------
+        outBtn = Button.builder(
+            Component.literal(AnimationNames.of(draft.outAnimation)),
+            btn -> {
+                int idx = (indexOf(OUT_TYPES, draft.outAnimation) + 1) % OUT_TYPES.length;
+                draft.outAnimation = OUT_TYPES[idx];
+                btn.setMessage(Component.literal(AnimationNames.of(draft.outAnimation)));
+                markDirtyImmediate();
+            }
+        ).bounds(fx, l.awY(3), HALF_W, WID_H).build();
+        markAdv(outBtn);
+
+        outDurEdit = new EditBox(this.font, fx + HALF_W + GAP, l.awY(3), qW, WID_H, Component.literal(""));
         outDurEdit.setValue(String.valueOf(draft.outDuration));
         outDurEdit.setMaxLength(6);
         markAdv(outDurEdit);
+        lastOutDurVal = outDurEdit.getValue();
 
         outEasingBtn = Button.builder(
             Component.literal(draft.outEasing != null ? draft.outEasing.name() : "LINEAR"),
@@ -396,17 +416,43 @@ public class TextEditorScreen extends Screen {
                 int idx = (indexOf(EASINGS, draft.outEasing) + 1) % EASINGS.length;
                 draft.outEasing = EASINGS[idx];
                 btn.setMessage(Component.literal(draft.outEasing.name()));
+                markDirtyImmediate();
             }
-        ).bounds(fx + 310, l.awY(1), 230, WID_H).build();
+        ).bounds(fx + HALF_W + GAP + qW + GAP, l.awY(3), qW, WID_H).build();
         markAdv(outEasingBtn);
 
         // ---------------------------------------------------------------
-        // ADVANCED ROW A2 — Idle intensity
+        // ADVANCED ROW 8 — Transforms (Scale + X + Y + Align)
         // ---------------------------------------------------------------
-        idleIntEdit = new EditBox(this.font, fx, l.awY(2), 100, WID_H, Component.literal(""));
-        idleIntEdit.setValue(String.format("%.2f", draft.idleIntensity));
-        idleIntEdit.setMaxLength(6);
-        markAdv(idleIntEdit);
+        int colW = (FORM_W - 3 * GAP) / 4; // 133 px each
+        scaleEdit = new EditBox(this.font, fx, l.awY(4), colW, WID_H, Component.literal(""));
+        scaleEdit.setValue(String.format("%.1f", draft.effectiveScale()));
+        scaleEdit.setMaxLength(6);
+        markAdv(scaleEdit);
+        lastScaleVal = scaleEdit.getValue();
+
+        xEdit = new EditBox(this.font, fx + 1 * (colW + GAP), l.awY(4), colW, WID_H, Component.literal(""));
+        xEdit.setValue(String.valueOf(draft.xOffset));
+        xEdit.setMaxLength(6);
+        markAdv(xEdit);
+        lastXVal = xEdit.getValue();
+
+        yEdit = new EditBox(this.font, fx + 2 * (colW + GAP), l.awY(4), colW, WID_H, Component.literal(""));
+        yEdit.setValue(String.valueOf(draft.effectiveY()));
+        yEdit.setMaxLength(6);
+        markAdv(yEdit);
+        lastYVal = yEdit.getValue();
+
+        alignBtn = Button.builder(
+            Component.literal("Alinh.: " + draft.alignment),
+            btn -> {
+                int idx = (indexOf(ALIGNMENTS, draft.alignment) + 1) % ALIGNMENTS.length;
+                draft.alignment = ALIGNMENTS[idx];
+                btn.setMessage(Component.literal("Alinh.: " + draft.alignment));
+                markDirtyImmediate();
+            }
+        ).bounds(fx + 3 * (colW + GAP), l.awY(4), colW, WID_H).build();
+        markAdv(alignBtn);
 
         // Apply advanced widget visibility
         for (AbstractWidget w : advancedWidgets) w.visible = advancedMode;
@@ -414,7 +460,6 @@ public class TextEditorScreen extends Screen {
         // ---------------------------------------------------------------
         // FOOTER BUTTONS
         // ---------------------------------------------------------------
-        // Widths: 110 + GAP + 135 + GAP + 110 + GAP + 80 + GAP + close at right edge
         Button saveBtn = Button.builder(Component.literal("Salvar draft"), btn -> {
             syncEditboxesToDraft();
             draft.save();
@@ -430,13 +475,15 @@ public class TextEditorScreen extends Screen {
         this.addRenderableWidget(copyBtn);
 
         Button sendAllBtn = Button.builder(Component.literal("Enviar (Todos)"), btn -> sendEditedText(true))
-            .bounds(fx + 251 + GAP, l.footerY, 110, 16).build();
+            .bounds(fx + 110 + GAP + 135 + GAP, l.footerY, 110, 16).build();
+        sendAllBtn.visible = advancedMode;
         this.addRenderableWidget(sendAllBtn);
 
         Button resetBtn = Button.builder(Component.literal("Resetar"), btn -> {
             draft.reset();
+            markDirtyImmediate();
             this.init();
-        }).bounds(fx + 367 + GAP, l.footerY, 80, 16).build();
+        }).bounds(fx + 110 + GAP + 135 + GAP + (advancedMode ? (110 + GAP) : 0), l.footerY, 80, 16).build();
         this.addRenderableWidget(resetBtn);
 
         Button closeBtn = Button.builder(Component.literal("✕ Fechar"), btn -> this.onClose())
@@ -473,11 +520,14 @@ public class TextEditorScreen extends Screen {
         }
     }
 
-    private void previewLocally() {
-        syncEditboxesToDraft();
-        AnimatedTextPayload p = draft.toPayload();
-        com.gabriel.titlefx.client.render.AnimatedTextManager.getInstance().showText(p);
-        setStatus("Preview reproduzido!");
+    private void markDirtyImmediate() {
+        previewDirty = true;
+        lastEditMs = 0;
+    }
+
+    private void markDirtyDebounced() {
+        previewDirty = true;
+        lastEditMs = System.currentTimeMillis();
     }
 
     private void sendEditedText(boolean targetAll) {
@@ -502,9 +552,92 @@ public class TextEditorScreen extends Screen {
     public void tick() {
         super.tick();
         if (statusTimer > 0) statusTimer--;
-        if (textEdit    != null) textEdit.tick();
-        if (colorEdit   != null) colorEdit.tick();
-        if (durationEdit!= null) durationEdit.tick();
+
+        boolean editBoxChanged = false;
+
+        if (textEdit != null) {
+            textEdit.tick();
+            String current = textEdit.getValue();
+            if (!current.equals(lastTextVal)) {
+                lastTextVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (colorEdit != null) {
+            colorEdit.tick();
+            String current = colorEdit.getValue();
+            if (!current.equals(lastColorVal)) {
+                lastColorVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (durationEdit != null) {
+            durationEdit.tick();
+            String current = durationEdit.getValue();
+            if (!current.equals(lastDurationVal)) {
+                lastDurationVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (scaleEdit != null) {
+            scaleEdit.tick();
+            String current = scaleEdit.getValue();
+            if (!current.equals(lastScaleVal)) {
+                lastScaleVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (xEdit != null) {
+            xEdit.tick();
+            String current = xEdit.getValue();
+            if (!current.equals(lastXVal)) {
+                lastXVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (yEdit != null) {
+            yEdit.tick();
+            String current = yEdit.getValue();
+            if (!current.equals(lastYVal)) {
+                lastYVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (inDurEdit != null) {
+            inDurEdit.tick();
+            String current = inDurEdit.getValue();
+            if (!current.equals(lastInDurVal)) {
+                lastInDurVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (outDurEdit != null) {
+            outDurEdit.tick();
+            String current = outDurEdit.getValue();
+            if (!current.equals(lastOutDurVal)) {
+                lastOutDurVal = current;
+                editBoxChanged = true;
+            }
+        }
+        if (idleIntEdit != null) {
+            idleIntEdit.tick();
+            String current = idleIntEdit.getValue();
+            if (!current.equals(lastIdleIntVal)) {
+                lastIdleIntVal = current;
+                editBoxChanged = true;
+            }
+        }
+
+        if (editBoxChanged) {
+            markDirtyDebounced();
+        }
+
+        // Auto-preview logic
+        if (previewDirty && (lastEditMs == 0 || System.currentTimeMillis() - lastEditMs > 300)) {
+            syncEditboxesToDraft();
+            previewRenderer.play(draft);
+            previewDirty = false;
+        }
     }
 
     @Override
@@ -537,16 +670,13 @@ public class TextEditorScreen extends Screen {
 
         // ---- Style card column (left side of top section) ----
         int cardColStartY = l.py + HDR_H + 6;
-        // draw accent bar (left-edge colored strip) before widgets render
         StyleCard[] cards = StyleCard.values();
         for (int i = 0; i < cards.length; i++) {
             int cardY = cardColStartY + i * (CARD_H + CARD_GAP);
-            // colored left strip (3px wide, outside card button bounds)
             boolean sel = cards[i].name().equals(draft.selectedStyleCard);
             int barColor = sel ? 0xFF5599FF : cards[i].getAccentColor();
             g.fill(l.px + PAD - 3, cardY, l.px + PAD - 1, cardY + CARD_H, barColor);
             if (sel) {
-                // bright highlight outline on selected card
                 g.fill(l.px + PAD - 1, cardY - 1, l.px + PAD + CARD_W + 1, cardY, 0xFF334466);
                 g.fill(l.px + PAD - 1, cardY + CARD_H, l.px + PAD + CARD_W + 1, cardY + CARD_H + 1, 0xFF334466);
             }
@@ -556,11 +686,13 @@ public class TextEditorScreen extends Screen {
         // ---- Preview zone (right side of top section) ----
         int pvX = l.px + PAD + PREV_X_OFF;
         int pvW = W - PAD - PREV_X_OFF - PAD;
-        int pvH = TOP_H - WID_H - 8; // height above action buttons
+        int pvH = TOP_H - WID_H - 12; // height above action buttons
         int pvY = l.py + HDR_H + 4;
         g.fill(pvX, pvY, pvX + pvW, pvY + pvH, 0xFF0A0A18);
         g.fill(pvX + 1, pvY + 1, pvX + pvW - 1, pvY + pvH - 1, 0xFF0D0D22);
-        g.drawString(this.font, "§8Preview — pressione Reproduzir", pvX + 4, pvY + 4, 0x303048);
+        
+        // Render preview inside panel
+        previewRenderer.render(g, pvX, pvY, pvW, pvH);
 
         // ---- Separator ----
         int sepY = l.py + HDR_H + TOP_H;
@@ -570,28 +702,25 @@ public class TextEditorScreen extends Screen {
         // ---- Form labels (simple rows) ----
         g.drawString(this.font, "§8Texto:", fx, l.lY(0), 0x7070A0);
         g.drawString(this.font, "§8Tipo:", fx, l.lY(1), 0x7070A0);
-        g.drawString(this.font, "§8Revelação:", fx, l.lY(2), 0x7070A0);
-        g.drawString(this.font, "§8Velocidade:", fx + HALF_W + GAP, l.lY(2), 0x7070A0);
-        g.drawString(this.font, "§8Entrada:", fx, l.lY(3), 0x7070A0);
-        g.drawString(this.font, "§8Ocioso:", fx, l.lY(4), 0x7070A0);
-        g.drawString(this.font, "§8Saída:", fx + HALF_W + GAP, l.lY(4), 0x7070A0);
-        g.drawString(this.font, "§8Cor:", fx, l.lY(5), 0x7070A0);
-        g.drawString(this.font, "§8Duração:", fx + 186, l.lY(5), 0x7070A0);
+        g.drawString(this.font, "§8Revelação / Velocidade:", fx, l.lY(2), 0x7070A0);
+        g.drawString(this.font, "§8Cor:", fx, l.lY(3), 0x7070A0);
 
         // ---- Advanced labels ----
         if (advancedMode) {
-            // A0 labels at positions matching scaleEdit(fx), xEdit(fx+78), yEdit(fx+156), alignBtn(fx+234)
-            g.drawString(this.font, "§8Escala:", fx,       l.alY(0), 0x7070A0);
-            g.drawString(this.font, "§8X:",      fx + 78,  l.alY(0), 0x7070A0);
-            g.drawString(this.font, "§8Y:",      fx + 156, l.alY(0), 0x7070A0);
-            g.drawString(this.font, "§8Alinhamento:", fx + 234, l.alY(0), 0x7070A0);
-            // A1: inDurEdit(fx), inEasingBtn(fx+78), outDurEdit(fx+232), outEasingBtn(fx+310)
-            g.drawString(this.font, "§8Dur.Ent.:",   fx,       l.alY(1), 0x7070A0);
-            g.drawString(this.font, "§8Suav.Ent.:",  fx + 78,  l.alY(1), 0x7070A0);
-            g.drawString(this.font, "§8Dur.Saída:",  fx + 232, l.alY(1), 0x7070A0);
-            g.drawString(this.font, "§8Suav.Saída:", fx + 310, l.alY(1), 0x7070A0);
-            // A2
-            g.drawString(this.font, "§8Intens. Idle:", fx, l.alY(2), 0x7070A0);
+            // A0: durationEdit
+            g.drawString(this.font, "§8Duração Total (ms):", fx, l.alY(0), 0x7070A0);
+            
+            // A1: inAnimBtn(fx), inDurEdit(fx+HALF_W+GAP), inEasingBtn(fx+HALF_W+GAP+qW+GAP)
+            g.drawString(this.font, "§8Entrada / Duração / Suavização:", fx, l.alY(1), 0x7070A0);
+            
+            // A2: idleBtn(fx), idleIntEdit(fx+HALF_W+GAP)
+            g.drawString(this.font, "§8Ocioso / Intensidade:", fx, l.alY(2), 0x7070A0);
+            
+            // A3: outBtn(fx), outDurEdit(fx+HALF_W+GAP), outEasingBtn(fx+HALF_W+GAP+qW+GAP)
+            g.drawString(this.font, "§8Saída / Duração / Suavização:", fx, l.alY(3), 0x7070A0);
+            
+            // A4: scaleEdit, xEdit, yEdit, alignBtn
+            g.drawString(this.font, "§8Escala / X / Y / Alinhamento:", fx, l.alY(4), 0x7070A0);
         }
 
         // ---- Status message (fades out) ----

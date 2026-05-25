@@ -208,8 +208,8 @@ public class EditorDraftState {
     public String toCommand() {
         StringBuilder cmd = new StringBuilder("/ctitle show @a ").append(type).append(" ");
 
-        // Color — always include
-        if (color != null && !color.isEmpty()) {
+        // Color — only if differs from default #FFFFFF
+        if (color != null && !color.isEmpty() && !"#FFFFFF".equalsIgnoreCase(color)) {
             cmd.append("color:").append(color).append(" ");
         }
 

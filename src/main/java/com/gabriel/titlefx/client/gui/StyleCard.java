@@ -8,7 +8,7 @@ import com.gabriel.titlefx.common.animation.*;
  */
 public enum StyleCard {
 
-    BOSS_CINEMATICO("Boss Cinemático", 0xFF5A1010) {
+    BOSS_CINEMATICO("Boss Cinemático", 0xFF5A1010, "Impacto dramático com zoom cinemático e decodificação") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#AA0000";
@@ -23,7 +23,7 @@ public enum StyleCard {
         }
     },
 
-    MISSAO("Missão", 0xFF4A3010) {
+    MISSAO("Missão", 0xFF4A3010, "Aparecimento suave por palavras com pulsação suave") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFD56A";
@@ -38,7 +38,7 @@ public enum StyleCard {
         }
     },
 
-    LOCALIZACAO("Localização", 0xFF1A3A1A) {
+    LOCALIZACAO("Localização", 0xFF1A3A1A, "Revelação cinematográfica caractere a caractere") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFFFFF";
@@ -53,7 +53,7 @@ public enum StyleCard {
         }
     },
 
-    AVISO("Aviso", 0xFF4A2A00) {
+    AVISO("Aviso", 0xFF4A2A00, "Texto instável com embaralhamento e piscar de alerta") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFAA00";
@@ -68,7 +68,7 @@ public enum StyleCard {
         }
     },
 
-    SISTEMA("Sistema", 0xFF0A2040) {
+    SISTEMA("Sistema", 0xFF0A2040, "Mensagem rápida do sistema com digitação de terminal") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "actionbar";
             d.color       = "#55AAFF";
@@ -83,7 +83,7 @@ public enum StyleCard {
         }
     },
 
-    ACHIEVEMENT("Achievement", 0xFF303010) {
+    ACHIEVEMENT("Achievement", 0xFF303010, "Conquista dourada com surgimento centralizado e pulso") {
         @Override public void apply(EditorDraftState d) {
             d.type        = "title";
             d.color       = "#FFFF55";
@@ -100,15 +100,19 @@ public enum StyleCard {
 
     private final String label;
     private final int    accentColor;
+    private final String description;
 
-    StyleCard(String label, int accentColor) {
+    StyleCard(String label, int accentColor, String description) {
         this.label       = label;
         this.accentColor = accentColor;
+        this.description = description;
     }
 
-    public String getLabel()     { return label; }
+    public String getLabel()       { return label; }
     public int    getAccentColor() { return accentColor; }
+    public String getDescription() { return description; }
 
     /** Applies this card's complete configuration to the given draft state. */
     public abstract void apply(EditorDraftState d);
 }
+
