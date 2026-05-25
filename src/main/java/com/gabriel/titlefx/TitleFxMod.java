@@ -45,6 +45,7 @@ public class TitleFxMod {
         event.enqueueWork(() -> {
             NetworkHandler.register();
             PresetManager.init();
+            com.gabriel.titlefx.common.font.ServerFontManager.init();
         });
         LOGGER.info("TitleFX Common Setup completed.");
     }
@@ -59,6 +60,13 @@ public class TitleFxMod {
         LOGGER.info("TitleFX registered server-side commands.");
     }
 
+    @SubscribeEvent
+    public void onPlayerLoggedIn(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+            com.gabriel.titlefx.common.font.ServerFontManager.onPlayerLoggedIn(player);
+        }
+    }
+
     // Client-only event subscriber to register overlay
     @Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {
@@ -66,6 +74,45 @@ public class TitleFxMod {
         public static void registerOverlays(RegisterGuiOverlaysEvent event) {
             event.registerAboveAll("animated_text", AnimatedTextOverlay.INSTANCE);
             LOGGER.info("TitleFX registered animated text HUD overlay.");
+        }
+
+        @SubscribeEvent
+        public static void onAddPackFinders(net.minecraftforge.event.AddPackFindersEvent event) {
+            if (event.getPackType() == net.minecraft.server.packs.PackType.CLIENT_RESOURCES) {
+                java.nio.file.Path resourcePath = java.nio.file.Paths.get("titlefx/font_cache/active/generated_pack");
+                
+                java.io.File packDir = resourcePath.toFile();
+                if (!packDir.exists()) {
+                    packDir.mkdirs();
+                }
+                java.io.File mcmeta = new java.io.File(packDir, "pack.mcmeta");
+                if (!mcmeta.exists()) {
+                    try {
+                        String metaJson = "{\n" +
+                                "  \"pack\": {\n" +
+                                "    \"pack_format\": 15,\n" +
+                                "    \"description\": \"TitleFX Server Fonts\"\n" +
+                                "  }\n" +
+                                "}";
+                        java.nio.file.Files.writeString(mcmeta.toPath(), metaJson, java.nio.charset.StandardCharsets.UTF_8);
+                    } catch (Exception ignored) {}
+                }
+
+                event.addRepositorySource((consumer) -> {
+                    net.minecraft.server.packs.repository.Pack pack = net.minecraft.server.packs.repository.Pack.readMetaAndCreate(
+                        "titlefx:generated_pack",
+                        net.minecraft.network.chat.Component.literal("TitleFX Server Fonts"),
+                        true, // always active
+                        (id) -> new net.minecraft.server.packs.PathPackResources(id, resourcePath, false),
+                        net.minecraft.server.packs.PackType.CLIENT_RESOURCES,
+                        net.minecraft.server.packs.repository.Pack.Position.TOP,
+                        net.minecraft.server.packs.repository.PackSource.BUILT_IN
+                    );
+                    if (pack != null) {
+                        consumer.accept(pack);
+                    }
+                });
+            }
         }
     }
 }

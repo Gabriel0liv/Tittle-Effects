@@ -78,15 +78,15 @@ public class CTitleCommand {
             )
         );
 
-        // /ctitle preset <targets> <presetId> [text_override]
-        base.then(Commands.literal("preset")
+        // /ctitle send <presetId> <targets> [text]
+        base.then(Commands.literal("send")
             .requires(src -> src.hasPermission(permLevel))
-            .then(Commands.argument("targets", EntityArgument.players())
-                .then(Commands.argument("presetId", StringArgumentType.word())
-                    .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(PresetManager.getPresetIds(), builder))
-                    .executes(ctx -> executePreset(ctx, null))
-                    .then(Commands.argument("text_override", StringArgumentType.string())
-                        .executes(ctx -> executePreset(ctx, StringArgumentType.getString(ctx, "text_override")))
+            .then(Commands.argument("presetId", StringArgumentType.word())
+                .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(PresetManager.getPresetIds(), builder))
+                .then(Commands.argument("targets", EntityArgument.players())
+                    .executes(ctx -> executeSend(ctx, null))
+                    .then(Commands.argument("text", StringArgumentType.greedyString())
+                        .executes(ctx -> executeSend(ctx, StringArgumentType.getString(ctx, "text")))
                     )
                 )
             )
@@ -104,7 +104,7 @@ public class CTitleCommand {
             )
         );
 
-        // /ctitle preview <presetId>
+        // /ctitle preview <presetId> [text]
         base.then(Commands.literal("preview")
             .requires(src -> {
                 boolean allowPreview = TitleFxConfig.COMMON.allowPreviewCommand.get();
@@ -113,10 +113,13 @@ public class CTitleCommand {
             .then(Commands.argument("presetId", StringArgumentType.word())
                 .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(PresetManager.getPresetIds(), builder))
                 .executes(CTitleCommand::executePreview)
+                .then(Commands.argument("text", StringArgumentType.greedyString())
+                    .executes(ctx -> executePreviewWithText(ctx, StringArgumentType.getString(ctx, "text")))
+                )
             )
         );
 
-        // /ctitle fonts list
+        // /ctitle fonts list/reload
         base.then(Commands.literal("fonts")
             .then(Commands.literal("list")
                 .requires(src -> {
@@ -124,6 +127,10 @@ public class CTitleCommand {
                     return allowPreview || src.hasPermission(permLevel);
                 })
                 .executes(CTitleCommand::executeFontsList)
+            )
+            .then(Commands.literal("reload")
+                .requires(src -> src.hasPermission(permLevel))
+                .executes(CTitleCommand::executeFontsReload)
             )
         );
 
@@ -252,7 +259,7 @@ public class CTitleCommand {
         }
     }
 
-    private static int executePreset(CommandContext<CommandSourceStack> context, String textOverride) {
+    private static int executeSend(CommandContext<CommandSourceStack> context, String textOverride) {
         try {
             Collection<ServerPlayer> players = EntityArgument.getPlayers(context, "targets");
             String presetId = StringArgumentType.getString(context, "presetId");
@@ -296,6 +303,14 @@ public class CTitleCommand {
     }
 
     private static int executePreview(CommandContext<CommandSourceStack> context) {
+        return executePreviewInternal(context, null);
+    }
+
+    private static int executePreviewWithText(CommandContext<CommandSourceStack> context, String text) {
+        return executePreviewInternal(context, text);
+    }
+
+    private static int executePreviewInternal(CommandContext<CommandSourceStack> context, String textOverride) {
         try {
             ServerPlayer player = context.getSource().getPlayerOrException();
             String presetId = StringArgumentType.getString(context, "presetId");
@@ -306,7 +321,7 @@ public class CTitleCommand {
                 return 0;
             }
 
-            AnimatedTextPayload payload = preset.toPayload(null);
+            AnimatedTextPayload payload = preset.toPayload(textOverride);
             ShowAnimatedTextPacket packet = new ShowAnimatedTextPacket(payload);
 
             NetworkHandler.sendToPlayer(player, packet);
@@ -319,11 +334,18 @@ public class CTitleCommand {
     }
 
     private static int executeFontsList(CommandContext<CommandSourceStack> context) {
-        context.getSource().sendSuccess(() -> Component.literal("§6Fontes disponíveis no MVP:"), false);
+        context.getSource().sendSuccess(() -> Component.literal("§6Fontes disponíveis no servidor:"), false);
         context.getSource().sendSuccess(() -> Component.literal(" - §aminecraft:default§7 (Padrão)"), false);
-        context.getSource().sendSuccess(() -> Component.literal(" - §atitlefx:medieval§7 (Stub/Fallback no MVP)"), false);
-        context.getSource().sendSuccess(() -> Component.literal(" - §atitlefx:horror§7 (Stub/Fallback no MVP)"), false);
-        context.getSource().sendSuccess(() -> Component.literal(" - §atitlefx:pixel§7 (Stub/Fallback no MVP)"), false);
+        for (String fontId : com.gabriel.titlefx.common.font.ServerFontManager.getRegisteredFontIds()) {
+            context.getSource().sendSuccess(() -> Component.literal(" - §a" + fontId), false);
+        }
+        return 1;
+    }
+
+    private static int executeFontsReload(CommandContext<CommandSourceStack> context) {
+        com.gabriel.titlefx.common.font.ServerFontManager.rescan();
+        com.gabriel.titlefx.common.font.ServerFontManager.broadcastSync();
+        context.getSource().sendSuccess(() -> Component.literal("§aFontes do servidor recarregadas e sincronizadas com todos os jogadores!"), true);
         return 1;
     }
 
@@ -618,7 +640,8 @@ public class CTitleCommand {
                     for (LockMode m : LockMode.values()) suggestions.add(m.name().toLowerCase());
                     break;
                 case "font":
-                    suggestions.addAll(Arrays.asList("minecraft:default", "titlefx:medieval", "titlefx:horror", "titlefx:pixel"));
+                    suggestions.add("minecraft:default");
+                    suggestions.addAll(com.gabriel.titlefx.common.font.ServerFontManager.getRegisteredFontIds());
                     break;
                 case "color":
                     suggestions.addAll(Arrays.asList("#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"));

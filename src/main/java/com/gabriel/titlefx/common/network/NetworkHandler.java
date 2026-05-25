@@ -31,6 +31,24 @@ public class NetworkHandler {
             .decoder(ClearAnimatedTextPacket::decode)
             .consumerMainThread(ClearAnimatedTextPacket::handle)
             .add();
+
+        CHANNEL.messageBuilder(FontRegistrySyncPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(FontRegistrySyncPacket::encode)
+            .decoder(FontRegistrySyncPacket::decode)
+            .consumerMainThread(FontRegistrySyncPacket::handle)
+            .add();
+
+        CHANNEL.messageBuilder(FontRequestPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(FontRequestPacket::encode)
+            .decoder(FontRequestPacket::decode)
+            .consumerMainThread(FontRequestPacket::handle)
+            .add();
+
+        CHANNEL.messageBuilder(FontChunkPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(FontChunkPacket::encode)
+            .decoder(FontChunkPacket::decode)
+            .consumerMainThread(FontChunkPacket::handle)
+            .add();
     }
 
     public static void sendToPlayer(ServerPlayer player, Object msg) {

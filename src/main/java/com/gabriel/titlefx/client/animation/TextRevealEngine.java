@@ -136,7 +136,23 @@ public class TextRevealEngine {
         
         String charset = reveal.charset();
         if (charset == null || charset.isEmpty()) {
-            charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            charset = "safe";
+        }
+
+        if ("safe".equalsIgnoreCase(charset)) {
+            StringBuilder sb = new StringBuilder();
+            String text = instance.getText();
+            for (int i = 0; i < text.length(); i++) {
+                char c = text.charAt(i);
+                if (c != ' ' && c != '\n' && sb.indexOf(String.valueOf(c)) == -1) {
+                    sb.append(c);
+                }
+            }
+            if (sb.length() > 0) {
+                charset = sb.toString();
+            } else {
+                charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            }
         }
 
         int lockedCount = (int) (t * glyphs.size());

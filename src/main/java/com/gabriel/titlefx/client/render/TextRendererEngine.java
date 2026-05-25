@@ -119,7 +119,7 @@ public class TextRendererEngine {
 
         // Check if we must use glyph-by-glyph rendering
         boolean needsGlyphRender = false;
-        if (layer.reveal().type() != RevealType.NONE && layer.reveal().type() != RevealType.LINE_BY_LINE) {
+        if (layer.reveal().type() != RevealType.NONE) {
             needsGlyphRender = true;
         }
         if (layer.in().type() != InAnimationType.NONE || layer.out().type() != OutAnimationType.NONE || layer.idle().type() != IdleAnimationType.NONE) {

@@ -27,8 +27,8 @@ public class TitlePreset {
 
     public static class PositionPreset {
         public String anchor = null;
-        public int x = 0;
-        public int y = 0;
+        public Integer x = null;
+        public Integer y = null;
         public String alignment = "center";
     }
 
@@ -37,7 +37,7 @@ public class TitlePreset {
         public int duration = 1000;
         public String lockMode = "left_to_right";
         public int flickerSpeed = 2;
-        public String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        public String charset = "safe";
         public boolean preserveSpaces = true;
         public boolean preserveCase = true;
     }
@@ -94,12 +94,15 @@ public class TitlePreset {
         // Position
         PositionPayload posPayload;
         if (preset.position != null) {
-            String anchor = preset.position.anchor != null ? preset.position.anchor : TextDefaults.getDefaultPosition(layerType).anchor();
+            PositionPayload defaultPos = TextDefaults.getDefaultPosition(layerType);
+            String anchor = preset.position.anchor != null ? preset.position.anchor : defaultPos.anchor();
+            int xVal = preset.position.x != null ? preset.position.x : defaultPos.x();
+            int yVal = preset.position.y != null ? preset.position.y : defaultPos.y();
             posPayload = new PositionPayload(
                 anchor,
-                preset.position.x,
-                preset.position.y,
-                preset.position.alignment != null ? preset.position.alignment : "center"
+                xVal,
+                yVal,
+                preset.position.alignment != null ? preset.position.alignment : defaultPos.alignment()
             );
         } else {
             posPayload = TextDefaults.getDefaultPosition(layerType);

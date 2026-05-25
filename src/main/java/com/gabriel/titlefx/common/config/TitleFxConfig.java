@@ -24,6 +24,7 @@ public class TitleFxConfig {
         public final ForgeConfigSpec.IntValue permissionLevel;
         public final ForgeConfigSpec.BooleanValue allowPreviewCommand;
         public final ForgeConfigSpec.IntValue maxMessageLength;
+        public final ForgeConfigSpec.IntValue maxFontFileSizeMb;
 
         public Common(ForgeConfigSpec.Builder builder) {
             builder.push("general");
@@ -39,6 +40,10 @@ public class TitleFxConfig {
             maxMessageLength = builder
                     .comment("Maximum character length for incoming texts.")
                     .defineInRange("maxMessageLength", 512, 1, 4096);
+
+            maxFontFileSizeMb = builder
+                    .comment("Maximum allowed font file size in Megabytes for sync.")
+                    .defineInRange("maxFontFileSizeMb", 16, 1, 128);
 
             builder.pop();
         }

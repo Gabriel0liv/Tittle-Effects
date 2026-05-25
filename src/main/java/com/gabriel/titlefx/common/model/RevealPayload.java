@@ -19,7 +19,7 @@ public record RevealPayload(
             0,
             LockMode.LEFT_TO_RIGHT,
             2,
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            "safe",
             true,
             true
         );
