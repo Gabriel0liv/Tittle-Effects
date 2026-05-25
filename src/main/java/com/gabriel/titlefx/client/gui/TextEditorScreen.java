@@ -44,7 +44,6 @@ public class TextEditorScreen extends Screen {
     private Button[] typeButtons = new Button[3];
     private Button[] speedButtons = new Button[5];
     private Button[] cardBtns = new Button[StyleCard.values().length];
-    private Button moreOptionsBtn;
 
     public TextEditorScreen() {
         super(Component.literal("TitleFX Editor"));
@@ -119,6 +118,38 @@ public class TextEditorScreen extends Screen {
         int halfW = (formW - GAP) / 2;
 
         // ---------------------------------------------------------------
+        // PREVIEW ACTION BUTTONS
+        // ---------------------------------------------------------------
+        int pvX = l.px + PAD;
+        int pvW = l.panelW - 2 * PAD;
+        int pvBtnY = l.py + HDR_H + 4 + l.previewH + 4;
+        int btnW = (pvW - 2 * GAP) / 3;
+
+        if (pvBtnY + l.widH <= l.footerY - 4) {
+            Button reproBtn = Button.builder(
+                fitLabel("▶ Reproduzir", btnW), btn -> {
+                    syncEditboxesToDraft();
+                    previewRenderer.play(draft, pvW);
+                    setStatus("Preview reproduzido!");
+                }
+            ).bounds(pvX, pvBtnY, btnW, l.widH).build();
+            this.addRenderableWidget(reproBtn);
+
+            Button stopBtn = Button.builder(
+                fitLabel("■ Parar", btnW), btn -> {
+                    previewRenderer.stop();
+                    setStatus("Preview parado.");
+                }
+            ).bounds(pvX + btnW + GAP, pvBtnY, btnW, l.widH).build();
+            this.addRenderableWidget(stopBtn);
+
+            Button applyBtn = Button.builder(
+                fitLabel("↩ Aplicar", pvW - 2 * btnW - 2 * GAP), btn -> sendEditedText(false)
+            ).bounds(pvX + 2 * (btnW + GAP), pvBtnY, pvW - 2 * btnW - 2 * GAP, l.widH).build();
+            this.addRenderableWidget(applyBtn);
+        }
+
+        // ---------------------------------------------------------------
         // STYLE CARDS GRID
         // ---------------------------------------------------------------
         StyleCard[] styleCards = StyleCard.values();
@@ -129,92 +160,49 @@ public class TextEditorScreen extends Screen {
             int row = i / l.cardCols;
             int cardX = fx + col * (cardW + 4);
             int cardY = l.py + HDR_H + 4 + l.previewH + 4 + l.widH + 8 + row * (22 + 4);
-            boolean sel = card.name().equals(draft.selectedStyleCard);
-            String cardLabel = getShortCardLabel(card, l.compact);
-            cardBtns[i] = segmentedButton(cardLabel, sel, cardX, cardY, cardW, 22, () -> {
-                syncEditboxesToDraft();
-                card.apply(draft);
-                draft.selectedStyleCard = card.name();
-                markDirtyImmediate();
-                syncDraftToWidgets();
-            });
-            cardBtns[i].setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(card.getDescription())));
-            this.addRenderableWidget(cardBtns[i]);
-        }
 
-        // ---------------------------------------------------------------
-        // PREVIEW ACTION BUTTONS
-        // ---------------------------------------------------------------
-        int pvX = l.px + PAD;
-        int pvW = l.panelW - 2 * PAD;
-        int pvBtnY = l.py + HDR_H + 4 + l.previewH + 4;
-        int btnW = (pvW - 2 * GAP) / 3;
-
-        Button reproBtn = Button.builder(
-            fitLabel("▶ Reproduzir", btnW), btn -> {
-                syncEditboxesToDraft();
-                previewRenderer.play(draft, pvW);
-                setStatus("Preview reproduzido!");
-            }
-        ).bounds(pvX, pvBtnY, btnW, l.widH).build();
-        this.addRenderableWidget(reproBtn);
-
-        Button stopBtn = Button.builder(
-            fitLabel("■ Parar", btnW), btn -> {
-                previewRenderer.stop();
-                setStatus("Preview parado.");
-            }
-        ).bounds(pvX + btnW + GAP, pvBtnY, btnW, l.widH).build();
-        this.addRenderableWidget(stopBtn);
-
-        Button applyBtn = Button.builder(
-            fitLabel("↩ Aplicar", pvW - 2 * btnW - 2 * GAP), btn -> sendEditedText(false)
-        ).bounds(pvX + 2 * (btnW + GAP), pvBtnY, pvW - 2 * btnW - 2 * GAP, l.widH).build();
-        this.addRenderableWidget(applyBtn);
-
-        // Determine safe row placement
-        int maxFittingRow = -1;
-        for (int r = 3; r >= 0; r--) {
-            if (fits(l, r)) {
-                maxFittingRow = r;
-                break;
+            if (cardY + 22 <= l.footerY - 4) {
+                boolean sel = card.name().equals(draft.selectedStyleCard);
+                String cardLabel = getShortCardLabel(card, l.compact);
+                cardBtns[i] = segmentedButton(cardLabel, sel, cardX, cardY, cardW, 22, () -> {
+                    syncEditboxesToDraft();
+                    card.apply(draft);
+                    draft.selectedStyleCard = card.name();
+                    markDirtyImmediate();
+                    syncDraftToWidgets();
+                });
+                cardBtns[i].setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(card.getDescription())));
+                this.addRenderableWidget(cardBtns[i]);
+            } else {
+                cardBtns[i] = null;
             }
         }
-        if (maxFittingRow < 0) maxFittingRow = 0;
-        int moreOptionsRow = Math.min(3, maxFittingRow);
+
+        int currentRow = 0;
 
         // ---------------------------------------------------------------
-        // ROW 0 — Text input & Fallback More Options
+        // ROW 0 — Text input
         // ---------------------------------------------------------------
-        if (fits(l, 0) || moreOptionsRow == 0) {
-            int textW = (moreOptionsRow == 0) ? halfW : formW;
-            textEdit = new EditBox(this.font, fx, l.wY(0), textW, l.widH, Component.literal(""));
+        if (fits(l, currentRow)) {
+            textEdit = new EditBox(this.font, fx, l.wY(currentRow), formW, l.widH, Component.literal(""));
             textEdit.setValue(draft.text != null ? draft.text : "");
             textEdit.setMaxLength(256);
             this.addRenderableWidget(textEdit);
             lastTextVal = textEdit.getValue();
-
-            if (moreOptionsRow == 0) {
-                moreOptionsBtn = Button.builder(
-                    fitLabel("Mais opções...", halfW),
-                    btn -> {
-                        syncEditboxesToDraft();
-                        Minecraft.getInstance().setScreen(new AdvancedEditorScreen(this));
-                    }
-                ).bounds(fx + halfW + GAP, l.wY(0), halfW, l.widH).build();
-                this.addRenderableWidget(moreOptionsBtn);
-            }
+            currentRow++;
+        } else {
+            textEdit = null;
         }
 
         // ---------------------------------------------------------------
-        // ROW 1 — Type selector / Fallback More Options
+        // ROW 1 — Type selector (only if NOT compact)
         // ---------------------------------------------------------------
-        if (fits(l, 1) && moreOptionsRow > 1) {
+        if (!l.compact && fits(l, currentRow)) {
             int typeW = (formW - 2 * GAP) / 3;
             for (int i = 0; i < 3; i++) {
                 final int ti = i;
                 boolean sel = TYPES[i].equalsIgnoreCase(draft.type);
-                typeButtons[i] = segmentedButton(TYPE_LABELS[i], sel, fx + i * (typeW + GAP), l.wY(1), typeW, l.widH, () -> {
+                typeButtons[i] = segmentedButton(TYPE_LABELS[i], sel, fx + i * (typeW + GAP), l.wY(currentRow), typeW, l.widH, () -> {
                     syncEditboxesToDraft();
                     draft.type = TYPES[ti];
                     draft.yOffset = Integer.MIN_VALUE; // reset to type default
@@ -223,26 +211,20 @@ public class TextEditorScreen extends Screen {
                 });
                 this.addRenderableWidget(typeButtons[i]);
             }
-        } else if (moreOptionsRow == 1) {
-            moreOptionsBtn = Button.builder(
-                fitLabel("Mais opções...", formW),
-                btn -> {
-                    syncEditboxesToDraft();
-                    Minecraft.getInstance().setScreen(new AdvancedEditorScreen(this));
-                }
-            ).bounds(fx, l.wY(1), formW, l.widH).build();
-            this.addRenderableWidget(moreOptionsBtn);
+            currentRow++;
+        } else {
+            for (int i = 0; i < 3; i++) typeButtons[i] = null;
         }
 
         // ---------------------------------------------------------------
-        // ROW 2 — Speed selector / Fallback More Options
+        // ROW 2 — Speed selector
         // ---------------------------------------------------------------
-        if (fits(l, 2) && moreOptionsRow > 2) {
+        if (fits(l, currentRow)) {
             int speedW = (formW - 4 * GAP) / 5;
             for (int i = 0; i < 5; i++) {
                 final int si = i;
                 boolean sel = REVEAL_SPEEDS[i] == draft.revealSpeed;
-                speedButtons[i] = segmentedButton(SPEED_LABELS[i], sel, fx + i * (speedW + GAP), l.wY(2), speedW, l.widH, () -> {
+                speedButtons[i] = segmentedButton(SPEED_LABELS[i], sel, fx + i * (speedW + GAP), l.wY(currentRow), speedW, l.widH, () -> {
                     syncEditboxesToDraft();
                     draft.revealSpeed = REVEAL_SPEEDS[si];
                     markDirtyImmediate();
@@ -250,63 +232,54 @@ public class TextEditorScreen extends Screen {
                 });
                 this.addRenderableWidget(speedButtons[i]);
             }
-        } else if (moreOptionsRow == 2) {
-            moreOptionsBtn = Button.builder(
-                fitLabel("Mais opções...", formW),
-                btn -> {
-                    syncEditboxesToDraft();
-                    Minecraft.getInstance().setScreen(new AdvancedEditorScreen(this));
-                }
-            ).bounds(fx, l.wY(2), formW, l.widH).build();
-            this.addRenderableWidget(moreOptionsBtn);
+            currentRow++;
+        } else {
+            for (int i = 0; i < 5; i++) speedButtons[i] = null;
         }
 
         // ---------------------------------------------------------------
-        // ROW 3 — Color + Mais Opções
+        // ROW 3 — Color input (only if NOT compact)
         // ---------------------------------------------------------------
-        if (fits(l, 3) && moreOptionsRow == 3) {
-            if (!l.compact) {
-                colorEdit = new EditBox(this.font, fx, l.wY(3), halfW, l.widH, Component.literal(""));
-                colorEdit.setValue(draft.color != null ? draft.color : "#FFFFFF");
-                colorEdit.setMaxLength(32);
-                this.addRenderableWidget(colorEdit);
-                lastColorVal = colorEdit.getValue();
-
-                moreOptionsBtn = Button.builder(
-                    fitLabel("Mais opções...", halfW),
-                    btn -> {
-                        syncEditboxesToDraft();
-                        Minecraft.getInstance().setScreen(new AdvancedEditorScreen(this));
-                    }
-                ).bounds(fx + halfW + GAP, l.wY(3), halfW, l.widH).build();
-                this.addRenderableWidget(moreOptionsBtn);
-            } else {
-                colorEdit = null;
-                moreOptionsBtn = Button.builder(
-                    fitLabel("Mais opções...", formW),
-                    btn -> {
-                        syncEditboxesToDraft();
-                        Minecraft.getInstance().setScreen(new AdvancedEditorScreen(this));
-                    }
-                ).bounds(fx, l.wY(3), formW, l.widH).build();
-                this.addRenderableWidget(moreOptionsBtn);
-            }
+        if (!l.compact && fits(l, currentRow)) {
+            colorEdit = new EditBox(this.font, fx, l.wY(currentRow), halfW, l.widH, Component.literal(""));
+            colorEdit.setValue(draft.color != null ? draft.color : "#FFFFFF");
+            colorEdit.setMaxLength(32);
+            this.addRenderableWidget(colorEdit);
+            lastColorVal = colorEdit.getValue();
+            currentRow++;
+        } else {
+            colorEdit = null;
         }
 
         // ---------------------------------------------------------------
         // FOOTER BUTTONS
         // ---------------------------------------------------------------
-        int footerBtnW = (formW - GAP) / 2;
+        int footerBtnW = (formW - 3 * GAP) / 4;
+        int remainingW = formW - 3 * footerBtnW - 3 * GAP;
 
-        Button copyBtn = Button.builder(fitLabel("Copiar comando", footerBtnW), btn -> {
+        Button copyBtn = Button.builder(fitLabel("Copiar", footerBtnW), btn -> {
             syncEditboxesToDraft();
             Minecraft.getInstance().keyboardHandler.setClipboard(draft.toCommand());
             setStatus("Comando copiado!");
         }).bounds(fx, l.footerY, footerBtnW, 16).build();
         this.addRenderableWidget(copyBtn);
 
-        Button closeBtn = Button.builder(fitLabel("✕ Fechar", formW - footerBtnW - GAP), btn -> this.onClose())
-            .bounds(fx + footerBtnW + GAP, l.footerY, formW - footerBtnW - GAP, 16).build();
+        Button resetBtn = Button.builder(fitLabel("Resetar", footerBtnW), btn -> {
+            draft.reset();
+            syncDraftToWidgets();
+            markDirtyImmediate();
+            setStatus("Configurações resetadas.");
+        }).bounds(fx + footerBtnW + GAP, l.footerY, footerBtnW, 16).build();
+        this.addRenderableWidget(resetBtn);
+
+        Button moreBtn = Button.builder(fitLabel("Avançado", footerBtnW), btn -> {
+            syncEditboxesToDraft();
+            Minecraft.getInstance().setScreen(new AdvancedEditorScreen(this));
+        }).bounds(fx + 2 * (footerBtnW + GAP), l.footerY, footerBtnW, 16).build();
+        this.addRenderableWidget(moreBtn);
+
+        Button closeBtn = Button.builder(fitLabel("✕ Fechar", remainingW), btn -> this.onClose())
+            .bounds(fx + 3 * (footerBtnW + GAP), l.footerY, remainingW, 16).build();
         this.addRenderableWidget(closeBtn);
     }
 
@@ -326,20 +299,13 @@ public class TextEditorScreen extends Screen {
     }
 
     private Button segmentedButton(String label, boolean selected, int x, int y, int w, int h, Runnable onClick) {
-        String shown = label;
-        if (selected) {
-            if (w >= 45) {
-                shown = "► " + label;
-            } else if (w >= 35) {
-                shown = "►" + label;
-            }
-        }
+        String shown = getSegmentedLabel(label, selected, w);
         return Button.builder(fitLabel(shown, w), btn -> onClick.run())
             .bounds(x, y, w, h)
             .build();
     }
 
-    private void syncDraftToWidgets() {
+    public void syncDraftToWidgets() {
         if (textEdit != null) {
             textEdit.setValue(draft.text != null ? draft.text : "");
             lastTextVal = textEdit.getValue();
@@ -363,14 +329,7 @@ public class TextEditorScreen extends Screen {
                 StyleCard card = styleCards[i];
                 boolean sel = card.name().equals(draft.selectedStyleCard);
                 String cardLabel = getShortCardLabel(card, l.compact);
-                String shown = cardLabel;
-                if (sel) {
-                    if (cardW >= 45) {
-                        shown = "► " + cardLabel;
-                    } else if (cardW >= 35) {
-                        shown = "►" + cardLabel;
-                    }
-                }
+                String shown = getSegmentedLabel(cardLabel, sel, cardW);
                 cardBtns[i].setMessage(fitLabel(shown, cardW));
             }
         }
@@ -383,14 +342,7 @@ public class TextEditorScreen extends Screen {
         for (int i = 0; i < 3; i++) {
             if (typeButtons[i] != null) {
                 boolean sel = TYPES[i].equalsIgnoreCase(draft.type);
-                String shown = TYPE_LABELS[i];
-                if (sel) {
-                    if (typeW >= 45) {
-                        shown = "► " + TYPE_LABELS[i];
-                    } else if (typeW >= 35) {
-                        shown = "►" + TYPE_LABELS[i];
-                    }
-                }
+                String shown = getSegmentedLabel(TYPE_LABELS[i], sel, typeW);
                 typeButtons[i].setMessage(fitLabel(shown, typeW));
             }
         }
@@ -403,14 +355,7 @@ public class TextEditorScreen extends Screen {
         for (int i = 0; i < 5; i++) {
             if (speedButtons[i] != null) {
                 boolean sel = REVEAL_SPEEDS[i] == draft.revealSpeed;
-                String shown = SPEED_LABELS[i];
-                if (sel) {
-                    if (speedW >= 45) {
-                        shown = "► " + SPEED_LABELS[i];
-                    } else if (speedW >= 35) {
-                        shown = "►" + SPEED_LABELS[i];
-                    }
-                }
+                String shown = getSegmentedLabel(SPEED_LABELS[i], sel, speedW);
                 speedButtons[i].setMessage(fitLabel(shown, speedW));
             }
         }
@@ -525,35 +470,25 @@ public class TextEditorScreen extends Screen {
         g.fill(l.px, sepY + 1, l.px + l.panelW, sepY + 2, 0xFF090912);
 
         // ---- Form labels ----
+        int currentLabelRow = 0;
         if (textEdit != null) {
-            g.drawString(this.font, "§8Texto:", fx, l.lY(0), 0x7070A0);
+            g.drawString(this.font, "§8Texto:", fx, l.lY(currentLabelRow), 0x7070A0);
+            currentLabelRow++;
         }
 
-        // Determine fitting row placement for labels
-        int maxFittingRow = -1;
-        for (int r = 3; r >= 0; r--) {
-            if (fits(l, r)) {
-                maxFittingRow = r;
-                break;
-            }
-        }
-        if (maxFittingRow < 0) maxFittingRow = 0;
-        int moreOptionsRow = Math.min(3, maxFittingRow);
-
-        if (typeButtons[0] != null && moreOptionsRow > 1) {
-            g.drawString(this.font, "§8Tipo:", fx, l.lY(1), 0x7070A0);
-        } else if (moreOptionsRow == 1 && moreOptionsBtn != null) {
-            g.drawString(this.font, "§8Mais opções:", fx, l.lY(1), 0x7070A0);
+        if (typeButtons[0] != null) {
+            g.drawString(this.font, "§8Tipo:", fx, l.lY(currentLabelRow), 0x7070A0);
+            currentLabelRow++;
         }
 
-        if (speedButtons[0] != null && moreOptionsRow > 2) {
-            g.drawString(this.font, "§8Velocidade:", fx, l.lY(2), 0x7070A0);
-        } else if (moreOptionsRow == 2 && moreOptionsBtn != null) {
-            g.drawString(this.font, "§8Mais opções:", fx, l.lY(2), 0x7070A0);
+        if (speedButtons[0] != null) {
+            g.drawString(this.font, "§8Velocidade:", fx, l.lY(currentLabelRow), 0x7070A0);
+            currentLabelRow++;
         }
 
-        if (colorEdit != null && moreOptionsRow == 3) {
-            g.drawString(this.font, "§8Cor:", fx, l.lY(3), 0x7070A0);
+        if (colorEdit != null) {
+            g.drawString(this.font, "§8Cor:", fx, l.lY(currentLabelRow), 0x7070A0);
+            currentLabelRow++;
         }
 
         // ---- Status message ----
@@ -582,5 +517,19 @@ public class TextEditorScreen extends Screen {
         }
 
         return Component.literal(s + ellipsis);
+    }
+
+    private String getSegmentedLabel(String label, boolean selected, int width) {
+        if (!selected) return label;
+        int maxWidth = Math.max(6, width - 10);
+        String withSpace = "► " + label;
+        if (this.font.width(withSpace) <= maxWidth) {
+            return withSpace;
+        }
+        String withoutSpace = "►" + label;
+        if (this.font.width(withoutSpace) <= maxWidth) {
+            return withoutSpace;
+        }
+        return label;
     }
 }
