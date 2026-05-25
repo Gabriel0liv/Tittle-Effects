@@ -42,6 +42,7 @@ public class AdvancedEditorScreen extends Screen {
 
     // Widgets
     private EditBox durationEdit;
+    private EditBox colorEdit;
     private Button inAnimBtn;
     private EditBox inDurEdit;
     private Button inEasingBtn;
@@ -73,11 +74,13 @@ public class AdvancedEditorScreen extends Screen {
         final int px, py, panelW, panelH;
         final int formTopY, footerY;
         final int rowH, widH;
+        final boolean compact;
 
         Layout(int sw, int sh) {
-            boolean compact = sw < 680 || sh < 460;
+            this.compact = sw < 680 || sh < 460;
             int availableW = Math.max(260, sw - 24);
-            panelW = Math.min(compact ? 520 : 620, availableW);
+            int preferredW = compact ? 520 : 620;
+            panelW = Math.min(preferredW, availableW);
 
             rowH = sh >= 380 ? 28 : 22;
             widH = sh >= 380 ? 18 : 14;
@@ -103,6 +106,7 @@ public class AdvancedEditorScreen extends Screen {
 
     @Override
     protected void init() {
+        this.clearWidgets();
         super.init();
 
         Layout l = buildLayout();
@@ -111,11 +115,16 @@ public class AdvancedEditorScreen extends Screen {
         int halfW = (formW - GAP) / 2;
         int qW = (halfW - GAP) / 2;
 
-        // ROW 0 — Duration Edit
+        // ROW 0 — Duration & Color
         durationEdit = new EditBox(this.font, fx, l.wY(0), halfW, l.widH, Component.literal(""));
         durationEdit.setValue(String.valueOf(draft.effectiveDuration()));
         durationEdit.setMaxLength(10);
         this.addRenderableWidget(durationEdit);
+
+        colorEdit = new EditBox(this.font, fx + halfW + GAP, l.wY(0), halfW, l.widH, Component.literal(""));
+        colorEdit.setValue(draft.color != null ? draft.color : "#FFFFFF");
+        colorEdit.setMaxLength(32);
+        this.addRenderableWidget(colorEdit);
 
         // ROW 1 — In Animation
         inAnimBtn = Button.builder(
@@ -212,7 +221,7 @@ public class AdvancedEditorScreen extends Screen {
                 fitLabel(sel ? "►" + ALIGN_LABELS[i] : ALIGN_LABELS[i], alignBtnW),
                 btn -> {
                     draft.alignment = ALIGNMENTS[ai];
-                    this.init();
+                    updateAlignButtons(alignBtnW);
                 }
             ).bounds(fx + 3 * (colW + GAP) + i * (alignBtnW + GAP), l.wY(4), alignBtnW, l.widH).build();
             this.addRenderableWidget(alignBtns[i]);
@@ -240,12 +249,24 @@ public class AdvancedEditorScreen extends Screen {
         this.addRenderableWidget(sendAllBtn);
     }
 
+    private void updateAlignButtons(int w) {
+        for (int i = 0; i < 3; i++) {
+            if (alignBtns[i] != null) {
+                boolean sel = ALIGNMENTS[i].equalsIgnoreCase(draft.alignment);
+                alignBtns[i].setMessage(fitLabel(sel ? "►" + ALIGN_LABELS[i] : ALIGN_LABELS[i], w));
+            }
+        }
+    }
+
     private void syncToDraft() {
         if (durationEdit != null) {
             try {
                 int v = Integer.parseInt(durationEdit.getValue().trim());
                 draft.durationMs = v > 0 ? v : -1;
             } catch (Exception ignored) {}
+        }
+        if (colorEdit != null) {
+            draft.color = colorEdit.getValue().trim();
         }
         if (scaleEdit != null) {
             try { draft.scale = Float.parseFloat(scaleEdit.getValue().trim()); } catch (Exception ignored) {}
@@ -286,6 +307,7 @@ public class AdvancedEditorScreen extends Screen {
         super.tick();
         if (statusTimer > 0) statusTimer--;
         if (durationEdit != null) durationEdit.tick();
+        if (colorEdit != null) colorEdit.tick();
         if (inDurEdit != null) inDurEdit.tick();
         if (outDurEdit != null) outDurEdit.tick();
         if (scaleEdit != null) scaleEdit.tick();
@@ -309,7 +331,7 @@ public class AdvancedEditorScreen extends Screen {
         g.drawCenteredString(this.font, "§bTitleFX §7Configurações Avançadas", l.px + l.panelW / 2, l.py + 6, 0xFFFFFF);
 
         // Labels
-        g.drawString(this.font, "§8Duração Total (ms):", fx, l.lY(0), 0x7070A0);
+        g.drawString(this.font, "§8Duração e Cor:", fx, l.lY(0), 0x7070A0);
         g.drawString(this.font, "§8Entrada / Duração / Suavização:", fx, l.lY(1), 0x7070A0);
         g.drawString(this.font, "§8Ocioso / Intensidade:", fx, l.lY(2), 0x7070A0);
         g.drawString(this.font, "§8Saída / Duração / Suavização:", fx, l.lY(3), 0x7070A0);
@@ -326,13 +348,21 @@ public class AdvancedEditorScreen extends Screen {
     }
 
     private Component fitLabel(String text, int width) {
-        String s = text;
-        int maxWidth = width - 8;
-        while (this.font.width(s) > maxWidth && s.length() > 3) {
-            s = s.substring(0, s.length() - 2);
+        if (text == null) text = "";
+        int maxWidth = Math.max(6, width - 10);
+
+        if (this.font.width(text) <= maxWidth) {
+            return Component.literal(text);
         }
-        if (!s.equals(text)) s = s + "…";
-        return Component.literal(s);
+
+        String ellipsis = "…";
+        String s = text;
+
+        while (s.length() > 1 && this.font.width(s + ellipsis) > maxWidth) {
+            s = s.substring(0, s.length() - 1);
+        }
+
+        return Component.literal(s + ellipsis);
     }
 
     private static <T> int indexOf(T[] arr, T val) {
