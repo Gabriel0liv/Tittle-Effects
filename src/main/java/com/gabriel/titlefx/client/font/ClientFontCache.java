@@ -78,6 +78,17 @@ public class ClientFontCache {
     public static synchronized void handleRegistrySync(String registryHash, String serverHash, List<FontInfo> fonts) {
         TitleFxMod.LOGGER.info("Received FontRegistrySyncPacket. Registry Hash: " + registryHash + ", Server Hash: " + serverHash);
         
+        // Validate total registry synchronization size limit
+        long totalRegistryBytes = 0;
+        for (FontInfo info : fonts) {
+            totalRegistryBytes += info.sizeBytes();
+        }
+        long maxTotalLimitBytes = (long) com.gabriel.titlefx.common.config.TitleFxConfig.COMMON.maxTotalFontSyncMb.get() * 1024 * 1024;
+        if (totalRegistryBytes > maxTotalLimitBytes) {
+            TitleFxMod.LOGGER.error("Total fonts registry sync size (" + (totalRegistryBytes / 1024 / 1024) + "MB) exceeds max allowed total sync limit of " + (maxTotalLimitBytes / 1024 / 1024) + "MB. Aborting synchronization.");
+            return;
+        }
+
         currentServerHash = serverHash;
         File serverPackDir = new File(CACHE_DIR, serverHash + "/generated_pack");
         
@@ -223,11 +234,11 @@ public class ClientFontCache {
             return;
         }
 
-        // Limit validation: max allowed file size (from config)
+        // Limit validation: max allowed individual file size (from config)
         long currentBytes = activeDownloadBuffer.size();
-        long maxLimitBytes = (long) com.gabriel.titlefx.common.config.TitleFxConfig.COMMON.maxTotalFontSyncMb.get() * 1024 * 1024;
-        if (currentBytes + data.length > maxLimitBytes) {
-            TitleFxMod.LOGGER.error("Font transfer exceeded client sync size limit of " + (maxLimitBytes / 1024 / 1024) + "MB.");
+        long maxFileLimitBytes = (long) com.gabriel.titlefx.common.config.TitleFxConfig.COMMON.maxFontFileSizeMb.get() * 1024 * 1024;
+        if (currentBytes + data.length > maxFileLimitBytes) {
+            TitleFxMod.LOGGER.error("Font transfer for " + fontId + " exceeded individual font size limit of " + (maxFileLimitBytes / 1024 / 1024) + "MB.");
             activeDownload = null;
             return;
         }
