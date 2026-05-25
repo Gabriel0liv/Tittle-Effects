@@ -14,15 +14,39 @@ public class EditorPreviewRenderer {
     private boolean playing = false;
 
     /** Cria nova instância e inicia animação a partir de agora. */
-    public void play(EditorDraftState draft) {
+    public void play(EditorDraftState draft, int pvW) {
         if (draft == null) return;
         AnimatedTextPayload payload = draft.toPayload();
         if (payload.layers().isEmpty()) return;
         TextLayerPayload layer = payload.layers().get(0);
+
+        float textWidth = Minecraft.getInstance().font.width(layer.text());
+        if (textWidth <= 0) textWidth = 1.0f;
+
+        float maxScaleByWidth = (pvW * 0.75f) / textWidth;
+        float originalScale = draft.effectiveScale();
+        float previewScale = Math.min(originalScale, maxScaleByWidth);
+        previewScale = Math.max(0.6f, Math.min(3.0f, previewScale));
+
+        TextLayerPayload previewLayer = new TextLayerPayload(
+            layer.type(),
+            layer.text(),
+            layer.fontId(),
+            layer.color(),
+            layer.gradient(),
+            previewScale,
+            layer.position(),
+            layer.reveal(),
+            layer.in(),
+            layer.idle(),
+            layer.out(),
+            layer.durationMs()
+        );
+
         this.instance = new AnimatedTextInstance(
             payload.id(),
             UUID.randomUUID().toString(),
-            layer,
+            previewLayer,
             payload.globalDurationMs(),
             System.currentTimeMillis()
         );
