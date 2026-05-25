@@ -79,7 +79,7 @@ public class TitleFxMod {
         @SubscribeEvent
         public static void onAddPackFinders(net.minecraftforge.event.AddPackFindersEvent event) {
             if (event.getPackType() == net.minecraft.server.packs.PackType.CLIENT_RESOURCES) {
-                java.nio.file.Path resourcePath = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().resolve("titlefx/font_cache/active/generated_pack");
+                java.nio.file.Path resourcePath = net.minecraft.client.Minecraft.getInstance().gameDirectory.toPath().resolve("titlefx/font_cache/active/generated_pack");
                 
                 java.io.File packDir = resourcePath.toFile();
                 if (!packDir.exists()) {

@@ -49,7 +49,7 @@ public class TitleFxConfig {
 
             fontChunkSizeKb = builder
                     .comment("Size of font sync chunks in Kilobytes.")
-                    .defineInRange("fontChunkSizeKb", 32, 4, 256);
+                    .defineInRange("fontChunkSizeKb", 32, 4, 64);
 
             maxTotalFontSyncMb = builder
                     .comment("Maximum allowed accumulated fonts sync size in Megabytes.")

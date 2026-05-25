@@ -14,11 +14,12 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ClientFontCache {
-    private static final File CACHE_DIR = net.minecraftforge.fml.loading.FMLPaths.GAMEDIR.get().resolve("titlefx/font_cache").toFile();
+    private static final File CACHE_DIR = new File(net.minecraft.client.Minecraft.getInstance().gameDirectory, "titlefx/font_cache");
     private static final File ACTIVE_PACK_DIR = new File(CACHE_DIR, "active/generated_pack");
     
     private static String currentRegistryHash = "";
     private static String currentServerHash = "";
+    private static final List<FontInfo> currentRegistryFonts = new ArrayList<>();
     
     // Queue of FontInfo remaining to download
     private static final Queue<FontInfo> downloadQueue = new ConcurrentLinkedQueue<>();
@@ -122,6 +123,9 @@ public class ClientFontCache {
             TitleFxMod.LOGGER.info("Registry hash matches and active pack is complete. Skipping font download.");
             return;
         }
+        
+        currentRegistryFonts.clear();
+        currentRegistryFonts.addAll(fonts);
 
         // 2. Stale cleanup
         cleanupStaleFonts(serverHash, fonts);
@@ -228,6 +232,7 @@ public class ClientFontCache {
             TitleFxMod.LOGGER.info("Font downloads completed successfully!");
             try {
                 generatePackMetadata(currentServerHash);
+                generateProviderJsons(currentServerHash, currentRegistryFonts);
                 mirrorToActive(currentServerHash);
                 triggerResourceReload();
             } catch (Exception e) {

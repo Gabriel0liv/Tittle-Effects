@@ -65,7 +65,7 @@ public class FontChunkPacket {
             buf.readUtf(),
             buf.readInt(),
             buf.readInt(),
-            buf.readByteArray(65536)
+            buf.readByteArray(262144)
         );
     }
 
