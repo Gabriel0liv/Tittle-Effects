@@ -260,27 +260,53 @@ public class CTitleCommand {
 
 
     private static int executeAnimationsList(CommandContext<CommandSourceStack> context) {
-        context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Reveal:"), false);
-        for (RevealType t : RevealType.values()) {
-            if (isDeprecated(t)) continue;
-            context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
+        context.getSource().sendSuccess(() -> Component.literal("§6§l=== TitleFX — Animações Disponíveis ==="), false);
+
+        context.getSource().sendSuccess(() -> Component.literal("§e§lRevelações:"), false);
+        sendAnimLine(context, "Nenhuma",             "none");
+        sendAnimLine(context, "Digitando",           "typewriter");
+        sendAnimLine(context, "Palavra por palavra", "word_by_word");
+        sendAnimLine(context, "Decodificar mágico",  "obfuscated_decode");
+        sendAnimLine(context, "Letras embaralhadas", "glyph_scramble");
+        sendAnimLine(context, "Aparecer do centro",  "center_out");
+        sendAnimLine(context, "Varrer da esquerda",  "wipe_left_to_right");
+        sendAnimLine(context, "Fade por letras",     "fade_chars");
+        sendAnimLine(context, "Aleatório suave",     "random_fade");
+
+        context.getSource().sendSuccess(() -> Component.literal("§e§lVelocidades de Reveal:"), false);
+        for (RevealSpeed s : RevealSpeed.values()) {
+            if (s == RevealSpeed.CUSTOM) continue;
+            final String line = "  §f" + s.getLabel() + " §8(" + s.name().toLowerCase() + ")";
+            context.getSource().sendSuccess(() -> Component.literal(line), false);
         }
-        context.getSource().sendSuccess(() -> Component.literal("§6Tipos de In Animation:"), false);
-        for (InAnimationType t : InAnimationType.values()) {
-            if (isDeprecated(t)) continue;
-            context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
-        }
-        context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Idle Animation:"), false);
-        for (IdleAnimationType t : IdleAnimationType.values()) {
-            if (isDeprecated(t)) continue;
-            context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
-        }
-        context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Out Animation:"), false);
-        for (OutAnimationType t : OutAnimationType.values()) {
-            if (isDeprecated(t)) continue;
-            context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
-        }
+
+        context.getSource().sendSuccess(() -> Component.literal("§e§lEntrada:"), false);
+        sendAnimLine(context, "Nenhuma",             "none");
+        sendAnimLine(context, "Aparecer suave",      "fade_in");
+        sendAnimLine(context, "Zoom cinematográfico","cinematic_zoom_in");
+        sendAnimLine(context, "Pop suave",           "soft_pop");
+        sendAnimLine(context, "Crescer do centro",   "scale_reveal");
+
+        context.getSource().sendSuccess(() -> Component.literal("§e§lOcioso:"), false);
+        sendAnimLine(context, "Nenhuma",          "none");
+        sendAnimLine(context, "Pulso sutil",      "subtle_pulse");
+        sendAnimLine(context, "Respiração leve",  "breathing");
+        sendAnimLine(context, "Tremor leve",      "subtle_shake");
+        sendAnimLine(context, "Onda suave",       "wave_soft");
+        sendAnimLine(context, "Flicker mágico",   "flicker");
+
+        context.getSource().sendSuccess(() -> Component.literal("§e§lSaída:"), false);
+        sendAnimLine(context, "Nenhuma",          "none");
+        sendAnimLine(context, "Sumir suave",      "fade_out");
+        sendAnimLine(context, "Dissolver",        "dissolve");
+        sendAnimLine(context, "Encolher e sumir", "shrink_fade");
+
         return 1;
+    }
+
+    private static void sendAnimLine(CommandContext<CommandSourceStack> ctx, String friendly, String technical) {
+        final String msg = "  §f" + friendly + " §8(" + technical + ")";
+        ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
     }
 
     private static int executePresetsList(CommandContext<CommandSourceStack> context) {
