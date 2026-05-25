@@ -111,14 +111,16 @@ public class AnimationEngine {
             }
         }
 
-        // 3. Apply Transformations to Glyphs
+        // Apply block level transformations to the instance
+        instance.setBlockAlpha(baseAlpha);
+        instance.setBlockScale(baseScale);
+        instance.setBlockTranslateX(baseTranslateX);
+        instance.setBlockTranslateY(baseTranslateY);
+
+        // 3. Apply Transformations to Glyphs (only glyph level animations)
         Random rand = new Random();
         for (int i = 0; i < glyphs.size(); i++) {
             RenderableGlyph glyph = glyphs.get(i);
-            glyph.alpha *= baseAlpha;
-            glyph.scale *= baseScale;
-            glyph.xOffset += baseTranslateX;
-            glyph.yOffset += baseTranslateY;
 
             // IDLE ANIMATION (GLYPH LEVEL)
             if (idleType != IdleAnimationType.NONE) {

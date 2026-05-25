@@ -22,6 +22,11 @@ public class AnimatedTextInstance {
     private final List<RenderableGlyph> glyphs = new ArrayList<>();
     private final List<Integer> revealOrder = new ArrayList<>();
 
+    private float blockAlpha = 1.0f;
+    private float blockScale = 1.0f;
+    private float blockTranslateX = 0.0f;
+    private float blockTranslateY = 0.0f;
+
     public AnimatedTextInstance(String payloadId, String instanceId, TextLayerPayload layer, int globalDuration, long creationTime) {
         this.payloadId = payloadId;
         this.instanceId = instanceId;
@@ -64,6 +69,12 @@ public class AnimatedTextInstance {
     public void render(GuiGraphics guiGraphics, float partialTick, int screenWidth, int screenHeight, long now) {
         long elapsedMs = now - creationTime;
 
+        // Reset block transforms
+        this.blockAlpha = 1.0f;
+        this.blockScale = 1.0f;
+        this.blockTranslateX = 0.0f;
+        this.blockTranslateY = 0.0f;
+
         // Reset glyphs state
         for (RenderableGlyph glyph : glyphs) {
             glyph.currentChar = glyph.targetChar;
@@ -95,4 +106,16 @@ public class AnimatedTextInstance {
     public List<RenderableGlyph> getGlyphs() { return glyphs; }
     public List<Integer> getRevealOrder() { return revealOrder; }
     public String getType() { return layer.type(); }
+
+    public float getBlockAlpha() { return blockAlpha; }
+    public void setBlockAlpha(float val) { this.blockAlpha = val; }
+
+    public float getBlockScale() { return blockScale; }
+    public void setBlockScale(float val) { this.blockScale = val; }
+
+    public float getBlockTranslateX() { return blockTranslateX; }
+    public void setBlockTranslateX(float val) { this.blockTranslateX = val; }
+
+    public float getBlockTranslateY() { return blockTranslateY; }
+    public void setBlockTranslateY(float val) { this.blockTranslateY = val; }
 }

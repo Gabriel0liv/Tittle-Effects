@@ -350,6 +350,7 @@ public class CTitleCommand {
         }
         context.getSource().sendSuccess(() -> Component.literal("§6Tipos de In Animation:"), false);
         for (InAnimationType t : InAnimationType.values()) {
+            if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
             context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
         }
         context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Idle Animation:"), false);
@@ -358,6 +359,7 @@ public class CTitleCommand {
         }
         context.getSource().sendSuccess(() -> Component.literal("§6Tipos de Out Animation:"), false);
         for (OutAnimationType t : OutAnimationType.values()) {
+            if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
             context.getSource().sendSuccess(() -> Component.literal(" - " + t.name().toLowerCase()), false);
         }
         return 1;
@@ -628,13 +630,19 @@ public class CTitleCommand {
                     for (RevealType t : RevealType.values()) suggestions.add(t.name().toLowerCase());
                     break;
                 case "in":
-                    for (InAnimationType t : InAnimationType.values()) suggestions.add(t.name().toLowerCase());
+                    for (InAnimationType t : InAnimationType.values()) {
+                        if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
+                        suggestions.add(t.name().toLowerCase(Locale.ROOT));
+                    }
                     break;
                 case "idle":
                     for (IdleAnimationType t : IdleAnimationType.values()) suggestions.add(t.name().toLowerCase());
                     break;
                 case "out":
-                    for (OutAnimationType t : OutAnimationType.values()) suggestions.add(t.name().toLowerCase());
+                    for (OutAnimationType t : OutAnimationType.values()) {
+                        if (t.name().toLowerCase(Locale.ROOT).contains("slide")) continue;
+                        suggestions.add(t.name().toLowerCase(Locale.ROOT));
+                    }
                     break;
                 case "easing":
                 case "in_easing":

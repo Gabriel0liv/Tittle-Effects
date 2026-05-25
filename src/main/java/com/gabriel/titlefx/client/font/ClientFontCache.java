@@ -29,15 +29,17 @@ public class ClientFontCache {
     private static int activeDownloadExpectedChunks = 0;
     private static int activeDownloadReceivedChunks = 0;
 
-    private static final Set<String> activeFonts = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<String> syncedOnDiskFonts = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final Set<String> loadedFonts = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static int retryCount = 0;
 
     static {
         rebuildActiveFontsList();
+        loadedFonts.addAll(syncedOnDiskFonts);
     }
 
     public static void rebuildActiveFontsList() {
-        activeFonts.clear();
+        syncedOnDiskFonts.clear();
         File fontDir = new File(ACTIVE_PACK_DIR, "assets/titlefx/font");
         if (fontDir.exists() && fontDir.isDirectory()) {
             File[] files = fontDir.listFiles((dir, name) -> name.endsWith(".json"));
@@ -45,21 +47,23 @@ public class ClientFontCache {
                 for (File f : files) {
                     String name = f.getName();
                     String baseName = name.substring(0, name.lastIndexOf('.'));
-                    activeFonts.add("titlefx:" + baseName);
+                    String fontId = "titlefx:" + baseName;
+                    syncedOnDiskFonts.add(fontId);
+                    TitleFxMod.LOGGER.info("Font synced on disk: " + fontId);
                 }
             }
         }
     }
 
-    public static boolean isFontAvailable(String fontId) {
+    public static boolean isFontLoaded(String fontId) {
         if (fontId == null || fontId.trim().isEmpty() || "minecraft:default".equals(fontId)) {
             return true;
         }
-        return activeFonts.contains(fontId);
+        return loadedFonts.contains(fontId);
     }
 
     public static Collection<String> getActiveFonts() {
-        return activeFonts;
+        return loadedFonts;
     }
 
     private static void retryActiveFont() {
@@ -388,7 +392,13 @@ public class ClientFontCache {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
             TitleFxMod.LOGGER.info("Triggering resource pack reload...");
-            mc.reloadResourcePacks();
+            mc.reloadResourcePacks().thenRunAsync(() -> {
+                loadedFonts.clear();
+                loadedFonts.addAll(syncedOnDiskFonts);
+                for (String fontId : loadedFonts) {
+                    TitleFxMod.LOGGER.info("Font loaded after resource reload: " + fontId);
+                }
+            }, mc);
         });
     }
 
@@ -462,5 +472,38 @@ public class ClientFontCache {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    public static class ClientFontStatus {
+        public String fontId;
+        public boolean existsOnDisk;
+        public boolean jsonExists;
+        public boolean fontFileExists;
+        public boolean syncedOnDisk;
+        public boolean loaded;
+    }
+
+    public static List<ClientFontStatus> getClientFontStatuses() {
+        List<ClientFontStatus> statuses = new ArrayList<>();
+        synchronized (ClientFontCache.class) {
+            for (FontInfo info : currentRegistryFonts) {
+                ClientFontStatus status = new ClientFontStatus();
+                status.fontId = info.fontId();
+                
+                String nameWithoutPrefix = info.fontId().replace("titlefx:", "");
+                File fontDir = new File(ACTIVE_PACK_DIR, "assets/titlefx/font");
+                File jsonFile = new File(fontDir, nameWithoutPrefix + ".json");
+                File fontFile = new File(fontDir, nameWithoutPrefix + info.extension());
+                
+                status.jsonExists = jsonFile.exists();
+                status.fontFileExists = fontFile.exists();
+                status.existsOnDisk = status.jsonExists && status.fontFileExists;
+                status.syncedOnDisk = syncedOnDiskFonts.contains(info.fontId());
+                status.loaded = loadedFonts.contains(info.fontId());
+                
+                statuses.add(status);
+            }
+        }
+        return statuses;
     }
 }

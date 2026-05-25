@@ -111,7 +111,7 @@ public class PresetManager {
             "      \"duration\": 1000\n" +
             "    },\n" +
             "    \"in\": {\n" +
-            "      \"type\": \"slide_up\",\n" +
+            "      \"type\": \"fade_in\",\n" +
             "      \"duration\": 400\n" +
             "    },\n" +
             "    \"idle\": {\n" +
@@ -134,7 +134,7 @@ public class PresetManager {
             "      \"duration\": 800\n" +
             "    },\n" +
             "    \"in\": {\n" +
-            "      \"type\": \"slide_down\",\n" +
+            "      \"type\": \"zoom_in\",\n" +
             "      \"duration\": 400\n" +
             "    },\n" +
             "    \"idle\": {\n" +
@@ -264,7 +264,7 @@ public class PresetManager {
             "    \"color\": \"#FF5555\",\n" +
             "    \"duration\": 3500,\n" +
             "    \"in\": {\n" +
-            "      \"type\": \"slide_down\",\n" +
+            "      \"type\": \"zoom_in\",\n" +
             "      \"duration\": 300\n" +
             "    },\n" +
             "    \"idle\": {\n" +

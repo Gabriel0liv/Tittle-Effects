@@ -170,12 +170,28 @@ public class TextRendererEngine {
                 }
             }
 
+            poseStack.pushPose();
+            
+            // Apply Block Translation
+            poseStack.translate(instance.getBlockTranslateX(), instance.getBlockTranslateY(), 0.0f);
+            
+            // Apply Block Scale around line center
+            float blockScale = instance.getBlockScale();
+            if (blockScale != 1.0f) {
+                float lineCenterX = startX + scaledLineWidth / 2.0f;
+                float lineCenterY = lineY + (lineHeight * scale) / 2.0f;
+                poseStack.translate(lineCenterX, lineCenterY, 0.0f);
+                poseStack.scale(blockScale, blockScale, 1.0f);
+                poseStack.translate(-lineCenterX, -lineCenterY, 0.0f);
+            }
+
             if (!needsGlyphRender) {
                 // Optimized standard drawString path
                 float overallAlpha = 1.0f;
                 if (!lineGlyphs.isEmpty()) {
                     overallAlpha = lineGlyphs.get(0).alpha;
                 }
+                overallAlpha *= instance.getBlockAlpha();
                 int intColor = parseColor(layer.color(), overallAlpha);
 
                 poseStack.pushPose();
@@ -210,11 +226,12 @@ public class TextRendererEngine {
                     poseStack.scale(g.scale * scale, g.scale * scale, 1.0f);
 
                     int finalColor;
+                    float finalAlpha = g.alpha * instance.getBlockAlpha();
                     if (layer.gradient() != null && !layer.gradient().isEmpty()) {
                         float factor = lineGlyphs.size() > 1 ? (float) i / (lineGlyphs.size() - 1) : 0.0f;
-                        finalColor = getGradientColor(layer.gradient(), factor, g.alpha);
+                        finalColor = getGradientColor(layer.gradient(), factor, finalAlpha);
                     } else {
-                        finalColor = parseColor(layer.color(), g.alpha);
+                        finalColor = parseColor(layer.color(), finalAlpha);
                     }
 
                     FormattedCharSequence charSeq = Component.literal(String.valueOf(g.currentChar)).withStyle(fontStyle).getVisualOrderText();
@@ -224,6 +241,8 @@ public class TextRendererEngine {
                     currentX += targetWidth * scale * g.scale;
                 }
             }
+            
+            poseStack.popPose(); // Block transform pop
         }
     }
 

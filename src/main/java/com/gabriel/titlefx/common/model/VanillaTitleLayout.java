@@ -81,11 +81,11 @@ public class VanillaTitleLayout {
         float y = 0.0f;
         String t = type.toLowerCase(Locale.ROOT);
         if ("title".equals(t)) {
-            y = (screenHeight / 2.0f) - 20.0f - (8.0f * scale) + (offsetY + 40);
+            y = (screenHeight / 2.0f) - 40.0f + (offsetY - TITLE_Y);
         } else if ("subtitle".equals(t)) {
-            y = (screenHeight / 2.0f) + 5.0f - (8.0f * scale) + (offsetY - 10);
+            y = (screenHeight / 2.0f) + 10.0f + (offsetY - SUBTITLE_Y);
         } else if ("actionbar".equals(t)) {
-            y = screenHeight + offsetY - (4.0f * scale);
+            y = screenHeight - 59.0f + (offsetY - ACTIONBAR_Y);
         }
         return new float[]{x, y};
     }
